@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>牛霸霸屏</title>
+  <meta charset="utf-8">
+  <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
+  <meta http-equiv=X-UA-Compatible content=“IE=EmulateIE10”>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <link rel="stylesheet" type="text/css" href="css/reset.css">
+  <link rel="stylesheet" type="text/css" href="css/app.css?v=3">
+  <script type="text/javascript">
+  function cal() {
+    var windowWidth = window.innerWidth
+    var windowHeight = window.innerHeight
+    if (windowWidth > windowHeight && (windowWidth / windowHeight) > 2.5) {
+      document.documentElement.style.fontSize = windowHeight / 19.2 + 'px'
+      window.fontSize = windowHeight / 19.2
+    } else {
+      document.documentElement.style.fontSize = windowWidth / 19.2 + 'px'
+      window.fontSize = windowWidth / 19.2
+    }
+  }
+  cal()
+  window.addEventListener("resize", function() {
+    cal()
+  })
+  var baseURL = 'http://xnb.siweiquanjing.com'
+  </script>
+</head>
+
+<body>
+  <div id="loading-page" class="full">
+    <div id="loading-content">
+      <img src="images/logo1.png" class="loading-logo" width="80" height="80">
+      <div id="progressbar">
+        <div class="progress"></div>
+      </div>
+    </div>
+  </div>
+  <div id="ad-page" class="full">
+    <div class="count-label"></div>
+  </div>
+  <div id="app">
+    <!-- <video id="video" class="blob-video" data-src="bg.webm" autoplay=true controls="false" loop="true"></video> -->
+    <!--<video id="video" class="blob-video" data-src="../addons/bl_wx_wall/template/images/newbig/bg.webm" autoplay=true controls="false" loop="true"></video>-->
+    <div class="main" id="main" v-if="show">
+      <div class="msgbt">
+        <img src="http://nb.siweiquanjing.com/addons/bl_wx_wall/template/images/new_img/36.png" class="broadcast">
+        <div class="official-info">
+          <div class="marquee" id="testmarquee">
+            <div class="official-msg" data-duration='15000' data-gap='5' data-duplicated='true' style="width:100%;overflow:hidden;">{{notice}}</div>
+          </div>
+        </div>
+      </div>
+      <span class="rank-border"></span>
+      <div class="logo">
+        <img :src="basicInfo.logo" style="border-radius: 50%;display: block;">
+      </div>
+      <div id="marquee" style="display: none;">
+        <div class="marquee-scroller"></div>
+      </div>
+      <div id="bridge">
+        <div class="bridge-item" id="tmp" style="visibility: hidden;"><span class="rank-border"></span></div>
+      </div>
+      <div id="qrcode-wrap">
+        <div id="qrcode-box">
+          <img src="images/cow.png" class="cow">
+          <img src="images/h1.png" class="heart1">
+          <img src="images/h2.png" class="heart2">
+          <img src="images/h1.png" class="heart1 heart1-copy">
+          <img src="images/h2.png" class="heart2 heart2-copy">    
+          <img :src="basicInfo.qrcode | prefixImageUrl" class="qrcode" v-if="basicInfo.qrcode">
+          <img src="images/sao.png" class="wenzi">
+        </div>
+      </div>
+      <div id="bg-container">
+        <!--:src="$options.filters.prefixImageUrl(basicInfo.bg[0].videoUrl)"  :style="{'background-image': 'url('+ $options.filters.prefixImageUrl(basicInfo.bg[0].picUrl) +')'}"-->
+        <video id="video" class="full" :src="$options.filters.prefixImageUrl(basicInfo.bg[0].videoUrl)"  controls="false" loop="true" v-show="type == 2"></video>
+        <div id="imgBg" class="full" :style="{'background-image': 'url('+ $options.filters.prefixImageUrl(basicInfo.bg[0].picUrl) +')'}"  v-show="type == 1"></div>
+      </div>
+      <div id="controls">
+        <ul>
+          <li class="title">设置</li>
+          <li class="control">背景设置
+            <div class="control-content">
+              <h4>大屏幕背景选择</h4>
+              <div class="radio-group mt20">
+                <label class="bgradio click" for="bpselet1"><input type="radio" v-model="setting.bgPicked" id="bpselet1" value="2">视频</label>
+                <label class="bgradio click" for="bpselet2"><input type="radio" v-model="setting.bgPicked" id="bpselet2" value="1">图片</label>
+                <label class="bgradio click" for="bpselet3"><input type="radio" v-model="setting.bgPicked" id="bpselet3" value="0">无背景（透明）</label>
+              </div>
+              <p style="color: #ccc;font-size:13px;" class="mt20">您可以在商户管理后台勾选需要的视频和图片背景</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <!--新主题动画-->
+    <div id="new_theme_baping" class="pub-float" style="display:none;">
+      <iframe id="new_theme" name="new_theme" src="" width="100%" height="100%"></iframe>
+    </div>
+  </div>
+  <input type="hidden" id="adUrl" value="">
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+  <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script type="text/javascript" src="js/vue.js"></script>
+  <script type="text/javascript" src="js/anime.min.js"></script>
+  <script src="js/imagepreload.js"></script>
+  <script type="text/javascript" src="js/jquery.marquee.min.js"></script>
+  <script type="text/javascript" src="js/func.js?v=1"></script>
+  <script type="text/javascript" src="js/danmu.js?v=8"></script>
+  <script type="text/javascript">
+      var controls = function(){
+
+}
+
+controls.prototype.init = function(){
+    this.initBg()
+}
+
+controls.prototype.initBg = function(){
+    var flag = false
+    $('body').mousemove(throttle(function(event) {
+        if (!flag && event.pageX < 100) {
+            flag = true
+            $('#controls').addClass('show')
+        }
+        return false;
+    }, 100))
+
+    $('#controls').mouseleave(function(event) {
+        if($(event.target).hasClass('click')) {
+            return false;
+        }
+        $('.control').removeClass('active')
+        $(this).find('.control-content').hide()
+        $('#controls').removeClass('show')
+        setTimeout(function(){
+            flag = false
+        },300)
+        return false;
+    });
+
+    $('.control').hover(function() {
+        $(this).addClass('active')
+        $(this).find('.control-content').show()
+        return false;
+    }, function() {
+
+    });
+
+    /*$('.control-content').on('mouseleave',function(event){
+        console.log('bridge over')
+        event.preventDefault()
+        $('.control-content').hide()
+        $('.control').removeClass('active')
+        return false
+    })*/
+}
+  </script>
+  <script type="text/javascript">
+
+  var Anitype = 2
+  var barConfig = {
+    ht_id: getQueryString('ht_id')
+  }
+  var bar = {}
+  var app = new Vue({
+    el: '#app',
+    data: {
+      notice: '',
+      type: 0,
+      show: false,
+      setting: {
+        bgPicked: '-1'
+      },
+      basicInfo: {}
+    },
+    created: function() {
+      var _self = this
+      var p1 = ajax(baseURL + '/weixin/Screen/getHotelAllMsg', 'POST', { ht_id: barConfig.ht_id })
+      var p2 = ajax(baseURL + '/weixin/Screen/getNotice', 'POST', { ht_id: barConfig.ht_id })
+      var p = Promise.all([p1, p2])
+      p.then(function(results) {
+        _self.notice = results[1].result ? results[1].result.content : ''
+        var preload = new imagePreload({
+          callback: window.init
+        })
+        var basicInfo = results[0].result
+        // 广告图
+        if (basicInfo.advert.screen) {
+          var adUrl = prefixImageUrl(basicInfo.advert.screen.url)
+          document.getElementById("adUrl").value = adUrl
+          //preload.push(adUrl)
+        }
+  
+        // 设置title
+        document.title = basicInfo.ht_msg.name + '——牛霸霸屏'
+        app.basicInfo.logo = prefixImageUrl(basicInfo.ht_msg.logo)
+        // 设置二维码
+        app.basicInfo.qrcode = basicInfo.ht_msg.phone_er_url
+        // 设置背景 并判断默认是视频还是图片
+        app.setting.bgPicked = basicInfo.ht_msg.default_bg_type
+        app.basicInfo.bg = basicInfo.bg
+        if (isArray(basicInfo.bg) && basicInfo.bg.length > 0) {
+          preload.push(prefixImageUrl(basicInfo.bg[0].picUrl))
+          if (basicInfo.ht_msg.default_bg_type == '1') {
+            // 默认背景是图片
+            _self.type = 1
+          } else if (basicInfo.ht_msg.default_bg_type == '2') {
+            // 默认背景是视频
+            _self.type = 2
+          }
+        }
+        preload.init()
+      });
+
+    },
+    filters: {
+      prefixImageUrl: function(url) {
+        if (!url) {
+          return
+        }
+        if (url.indexOf('http') === 0) {
+          return url
+        }
+        return baseURL + url
+      }
+    },
+    watch: {
+      type (newVal, oldVal) {
+        if (newVal == 2) {
+          bar.video && bar.video[0].play()
+        } else {
+          bar.video && bar.video[0].pause()
+        }
+      },
+      'setting.bgPicked'(newVal, oldVal) {
+        var _self = this
+        if (newVal != 0) {
+          ajax(baseURL + '/weixin/Screen/changeBgType', 'POST', { ht_id: barConfig.ht_id, type: newVal}).then((res) => {
+            _self.type = newVal
+          })
+        } else {
+           _self.type = 0
+        }
+      }
+    }
+  })
+
+  window.init = function() {
+    window.addEventListener('message', function(e) {
+      switch (e.data.status) {
+        case 'open':
+          showTheme()
+          break;
+        case 'close':
+          hideTheme()
+          break;
+        case 'ready':
+          readySendMessage()
+          break;
+      }
+    })
+    app.show = true
+    app.$nextTick(function() {
+      if (!bar.video) {
+        bar.video = $('#video')
+      }
+      bar.video[0].play()
+      bar.video.one('canplaythrough', function() {
+        initUserInterFace()
+      })
+      scaleQrcode()
+      $('.official-msg').css('width', $('#testmarquee').width()).marquee({
+        direction: 'left',
+        duplicated: false
+      })
+      
+      var control = new controls()
+      console.log(control.init())
+    })
+    
+    function initUserInterFace() {
+      /*setTimeout(function() {
+        handleOrder()
+      }, 4000)*/
+      // 显示广告
+      var $adPage = $('#ad-page')
+      $adPage[0].addEventListener('webkitTransitionEnd', adPageEnd)
+
+      function adPageEnd() {
+        if ($adPage.hasClass('out')) {
+          $adPage.remove()
+          getNewestMsg()
+          ajaxGetNewOrder()
+          ajaxDeleteMsg()
+          $adPage[0].removeEventListener('webkitTransitionEnd', adPageEnd)
+        }
+      }
+      $adPage.css({ 'visibility': 'visible', 'background-image': 'url(' + document.getElementById("adUrl").value + ')' })
+
+      setTimeout(function() {
+        $('#loading-page').remove()
+        var count = 3
+        $('.count-label').text('广告' + count + '秒').show()
+        var timer = setInterval(function() {
+          count--
+          if (count == 0) {
+            clearInterval(timer)
+            $adPage.addClass('out')
+          } else {
+            $('.count-label').text('广告' + count + '秒')
+          }
+        }, 1000)
+      }, 300)
+    }
+
+    window.scroll1 = null
+
+    var timeGetNewMsg = null
+    window.ajaxGetNewMsg = function() {
+      ajax(baseURL + '/weixin/Screen/getMaxMsg', 'POST', { ht_id: barConfig.ht_id, id: scroll1.getMaxId() }).then(function(res) {
+        if (isArray(res.result) && res.result.length > 0) {
+          if (scroll1.getDatas().length === 0) {
+            window.scroll1.destory()
+            initGuidao(res.result)
+          } else {
+            scroll1.updateData(res.result)
+          }
+        }
+        clearTimeout(timeGetNewMsg)
+        timeGetNewMsg = setTimeout(function() {
+          ajaxGetNewMsg()
+        }, 1000)
+      })
+    }
+
+    // 获取首次渲染的数据
+    window.getNewestMsg = function() {
+      ajax(baseURL + '/weixin/Screen/getNewestMsg', 'POST', { ht_id: barConfig.ht_id, min_id: 0 }).then(function(res) {
+        if (Anitype == 2) {
+          initGuidao(res.result)
+          ajaxGetNewMsg()
+        } else {
+          scroll1 = new mmarquee({ datas: res.result })
+        }
+      })
+    }
+
+    // 初始化3个轨道的数据
+    function initGuidao (data) {
+      window.scroll1 = new bridge(data)
+      $.each(scroll1.damuProperty, function(i, o) {
+        if (o.quenes.length <= 0) {
+          var val = scroll1.getNextData()
+          if (val != null && val != undefined) {
+            scroll1.add(val, i)
+          }
+        }
+      })
+    }
+
+    // 获取订单
+    var timeGetNewOrder = null
+    window.ajaxGetNewOrder = function() {
+      ajax(baseURL + '/weixin/Screen/getNewOrder', 'POST', { ht_id: barConfig.ht_id }).then(function(res) {
+        if (res.result && !isArray(res.result)) {
+          clearTimeout(timeGetNewOrder)
+          handleOrder(res.result)
+        } else if (isArray(res.result) && res.result.length == 0){
+          timeGetNewOrder = setTimeout(function() {
+            ajaxGetNewOrder()
+          }, 1000)
+        }
+      }).catch(function() {
+        timeGetNewOrder = setTimeout(function() {
+          ajaxGetNewOrder()
+        }, 1000)
+      })
+    }
+  }
+  // 获取删除的消息
+  var timeDeleteMsg = null
+  window.ajaxDeleteMsg = function() {
+    ajax(baseURL + '/weixin/Screen/getDelMsg', 'POST', { ht_id: barConfig.ht_id }).then(function(res) {
+      if (isArray(res.result) && res.result.length != 0){
+        ajax(baseURL + '/weixin/Screen/getNewestMsg', 'POST', { ht_id: barConfig.ht_id, min_id: 0 }).then(function(res2) {
+          if (window.scroll1) {
+            window.scroll1.deleteByIds(res.result)
+            window.scroll1.replaceData(res2.result)
+          }
+          clearTimeout(timeDeleteMsg)
+          timeDeleteMsg = setTimeout(function() {
+            ajaxDeleteMsg()
+          }, 1000)
+        })
+      } else {
+        clearTimeout(timeDeleteMsg)
+        timeDeleteMsg = setTimeout(function() {
+          ajaxDeleteMsg()
+        }, 1000)
+      }
+    })
+  }
+  
+  var postData = {}
+  function handleOrder(data) {
+    /*var data = {
+        'content': '五月的天，刚诞生的夏天',
+        'initiator_headimgurl': '/uploads/weixin/20180225/7dd2855287054caa09d23c8f13871f7b.png',
+        'initiator_nickname': '田涛',
+        'img': '/uploads/weixin/20180225/5e353ebaf31d89bb8e5abc7273bf40a6.png',
+        'sendee_headimgurl': '/uploads/weixin/20180225/7dd2855287054caa09d23c8f13871f7b.png',
+        'sendee_nickname': '田涛2',
+        'odr_show_time': '30',
+        'pro_time': '60',
+        'url': 'http://localhost/screen/animations/ask_about-theme',
+        'title': '生日霸屏'
+      }*/
+    data.initiator_headimgurl = prefixImageUrl(data.initiator_headimgurl)
+    data.img = prefixImageUrl(data.img)
+    data.sendee_headimgurl = data.sendee_headimgurl == null ? '../common_img/all.png' : prefixImageUrl(data.sendee_headimgurl)
+    data.sendee_nickname = data.sendee_nickname == null ? '全场观众' : data.sendee_nickname
+    postData = data
+    $('#new_theme').attr('src', data.url)
+  }
+
+  function readySendMessage() {
+    $('#new_theme')[0].contentWindow.postMessage(postData, window.location.origin)
+  }
+
+  window.addEventListener('resize', debounce(function(){
+    if (window.scroll1) {
+      window.scroll1.destory()
+      clearTimeout(window.timeGetNewMsg)
+      window.getNewestMsg()
+      window.ajaxGetNewMsg()
+      scaleQrcode()
+    }
+  }, 500))
+
+  function showTheme() {
+    $("#new_theme_baping").show();
+  }
+
+  function hideTheme() {
+    $("#new_theme_baping").hide();
+    ajaxGetNewOrder();
+  }
+
+  function scaleQrcode () {
+    var winW = window.innerWidth
+    var winH = window.innerHeight
+    if (winW / winH > 1.4) {
+      var toH = winH / 5
+      var qrcode = $('#qrcode-box')
+      var scale = Number(toH / qrcode.height()).toFixed(2)
+      $('#qrcode-box').css('-webkit-transform', 'scale('+ scale +')')
+    }
+  }
+  //ipcRender
+
+  </script>
+  <script>if (window.module) module = window.module;</script>
+</body>
+
+</html>

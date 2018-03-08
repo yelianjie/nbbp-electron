@@ -1,43 +1,81 @@
 <template>
   <div id="wrapper">
-    <img id="logo" src="~@/assets/logo.png" alt="electron-vue">
-    <main>
-      <div class="left-side">
-        <span class="title">
-          Welcome to your new project!
-        </span>
-        <system-information></system-information>
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>屏幕设置</span>
       </div>
-
-      <div class="right-side">
-        <div class="doc">
-          <div class="title">Getting Started</div>
-          <p>
-            electron-vue comes packed with detailed documentation that covers everything from
-            internal configurations, using the project structure, building your application,
-            and so much more.
-          </p>
-          <button @click="open('https://simulatedgreg.gitbooks.io/electron-vue/content/')">Read the Docs</button><br><br>
-        </div>
-        <div class="doc">
-          <div class="title alt">Other Documentation</div>
-          <button class="alt" @click="open('https://electron.atom.io/docs/')">Electron</button>
-          <button class="alt" @click="open('https://vuejs.org/v2/guide/')">Vue.js</button>
-        </div>
+      <el-row>
+        <el-radio v-model="screenRadio" label="1">自定义</el-radio>
+        <el-radio v-model="screenRadio" label="2">全屏</el-radio>
+      </el-row>
+      <el-form class="screen-form" label-width="40px" label-position="left" :model="formLabelAlign">
+        <el-form-item label="宽">
+          <el-input type="number" v-model.number="formLabelAlign.width"></el-input>
+        </el-form-item>
+        <el-form-item label="高">
+          <el-input type="number" v-model.number="formLabelAlign.height"></el-input>
+        </el-form-item>
+        <el-form-item label="x">
+          <el-input type="number" v-model.number="formLabelAlign.x"></el-input>
+        </el-form-item>
+        <el-form-item label="y">
+          <el-input type="number" v-model.number="formLabelAlign.y"></el-input>
+        </el-form-item>
+      </el-form>
+    </el-card>
+    
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>背景设置</span>
       </div>
-    </main>
+      <el-row>
+        <el-radio v-model="screenRadio" label="2">视频</el-radio>
+        <el-radio v-model="screenRadio" label="1">图片</el-radio>
+        <el-radio v-model="screenRadio" label="0">透明</el-radio>
+      </el-row>
+    </el-card>
+    <el-button @click.native="openScreen">设置</el-button>
   </div>
 </template>
 
 <script>
   import SystemInformation from './LandingPage/SystemInformation'
-
+  import { changeBgType } from '../api/'
   export default {
     name: 'landing-page',
+    data () {
+      return {
+        screenRadio: '2',
+        formLabelAlign: {
+          width: 600,
+          height: 600,
+          x: 0,
+          y: 0
+        }
+      }
+    },
     components: { SystemInformation },
     methods: {
-      open (link) {
-        this.$electron.shell.openExternal(link)
+      openScreen () {
+        // this.$electron.shell.openExternal(link)
+        if (this.screenRadio == '1') {
+          this.$electron.ipcRenderer.send('openScreen', this.formLabelAlign)
+        } else {
+          this.$electron.ipcRenderer.send('openScreen', {full: true})
+        }
+      }
+    },
+    created () {
+      this.$electron.ipcRenderer.on('log', function(event, arg) {
+        alert(arg)
+      })
+    },
+    watch: {
+      screenRadio (newVal, oldVal) {
+        var _self = this
+        if (newVal != 0) {
+          changeBgType({ ht_id: 91, type: newVal}).then((res) => {})
+        }
       }
     }
   }
@@ -64,65 +102,13 @@
     height: 100vh;
     padding: 60px 80px;
     width: 100vw;
+    overflow-x: hidden;
   }
 
-  #logo {
-    height: auto;
-    margin-bottom: 20px;
-    width: 420px;
+  .screen-form {
+    margin-top:  20px;
   }
-
-  main {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  main > div { flex-basis: 50%; }
-
-  .left-side {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .welcome {
-    color: #555;
-    font-size: 23px;
-    margin-bottom: 10px;
-  }
-
-  .title {
-    color: #2c3e50;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 6px;
-  }
-
-  .title.alt {
-    font-size: 18px;
-    margin-bottom: 10px;
-  }
-
-  .doc p {
-    color: black;
-    margin-bottom: 10px;
-  }
-
-  .doc button {
-    font-size: .8em;
-    cursor: pointer;
-    outline: none;
-    padding: 0.75em 2em;
-    border-radius: 2em;
-    display: inline-block;
-    color: #fff;
-    background-color: #4fc08d;
-    transition: all 0.15s ease;
-    box-sizing: border-box;
-    border: 1px solid #4fc08d;
-  }
-
-  .doc button.alt {
-    color: #42b983;
-    background-color: transparent;
+  .box-card {
+    margin-bottom: 60px;
   }
 </style>

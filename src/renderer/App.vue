@@ -6,7 +6,7 @@
 
 <script>
   export default {
-    name: 'nbbp-electron'
+    name: 'electron-test'
   }
 </script>
 
