@@ -29,9 +29,9 @@
         <span>背景设置</span>
       </div>
       <el-row>
-        <el-radio v-model="screenRadio" label="2">视频</el-radio>
-        <el-radio v-model="screenRadio" label="1">图片</el-radio>
-        <el-radio v-model="screenRadio" label="0">透明</el-radio>
+        <el-radio v-model="bgTypeRadio" label="2">视频</el-radio>
+        <el-radio v-model="bgTypeRadio" label="1">图片</el-radio>
+        <el-radio v-model="bgTypeRadio" label="0">透明</el-radio>
       </el-row>
     </el-card>
     <el-button @click.native="openScreen">设置</el-button>
@@ -40,12 +40,14 @@
 
 <script>
   import SystemInformation from './LandingPage/SystemInformation'
-  import { changeBgType } from '../api/'
+  import { changeBgType, getAllMsg } from '../api/'
+  import fs from 'fs'
   export default {
     name: 'landing-page',
     data () {
       return {
         screenRadio: '2',
+        bgTypeRadio: '',
         formLabelAlign: {
           width: 600,
           height: 600,
@@ -66,12 +68,24 @@
       }
     },
     created () {
+      /*fs.mkdir('./userData',  (error) => {
+
+          fs.writeFileSync(
+            './userData/message.txt',
+            '456',
+            'utf8'
+          )
+      })*/
+      
+      getAllMsg({ ht_id: 91}).then((res) => {
+        this.bgTypeRadio = res.result.ht_msg.default_bg_type
+      })
       this.$electron.ipcRenderer.on('log', function(event, arg) {
         alert(arg)
       })
     },
     watch: {
-      screenRadio (newVal, oldVal) {
+      bgTypeRadio (newVal, oldVal) {
         var _self = this
         if (newVal != 0) {
           changeBgType({ ht_id: 91, type: newVal}).then((res) => {})

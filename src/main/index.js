@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
 import fs from 'fs'
@@ -59,6 +59,7 @@ function createWindow () {
   /**
    * Initial window options
    */
+  //Menu.setApplicationMenu(null)
   mainWindow = new BrowserWindow({
     height: 563,
     useContentSize: true,
@@ -70,7 +71,13 @@ function createWindow () {
   ipcMain.on('openScreen', function(event, arg) {
     if (!niubaWin) {
       if (!arg.full) {
-        niubaWin =  new BrowserWindow({width: arg.width, height: arg.height, frame: false,transparent: true})
+        niubaWin =  new BrowserWindow({
+          width: arg.width,
+          height: arg.height,
+          frame: false,
+          transparent: true,
+          title: '牛霸霸屏'
+        })
       } else {
         niubaWin =  new BrowserWindow({fullscreen: true, frame: false,transparent: true})
       }
