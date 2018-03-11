@@ -50,6 +50,7 @@ autoUpdater.on("update-downloaded", info => {
 });
 
 let mainWindow
+let qrcodeWin
 let niubaWin
 const winURL = process.env.NODE_ENV === 'development'
   ? `http://localhost:9080`
@@ -60,40 +61,58 @@ function createWindow () {
    * Initial window options
    */
   //Menu.setApplicationMenu(null)
-  mainWindow = new BrowserWindow({
-    height: 563,
-    useContentSize: true,
-    width: 1000
-  })
+  
 
-  mainWindow.loadURL(winURL)
+  if (!fs.existsSync(path.join(__dirname, '/userData/user.json'))) {
+    qrcodeWin = new BrowserWindow({
+      frame: false,
+      width: 400,
+      height: 460,
+      useContentSize: true
+    })
 
+    qrcodeWin.loadURL(url.format({
+      pathname: path.join(__static, '/qrcode.html'),
+      protocol: 'file:',
+      slashes: true
+    }))
+    ipcMain.on('loginSuccess', function(event, arg) {
+      qrcodeWin.hide()
+      mainWindow = new BrowserWindow({
+        height: 600,
+        useContentSize: true,
+        width: 1000
+      })
+      mainWindow.webContents.on('dom-ready', function(){
+        qrcodeWin.close()
+      })
+      mainWindow.loadURL(winURL)
+      mainWindow.on('closed', () => {
+        mainWindow = null
+      })
+    })
+    
+    qrcodeWin.on('closed', () => {
+      qrcodeWin = null
+    })
+  }
+  
+  var lastId = 0
   ipcMain.on('openScreen', function(event, arg) {
+    var isSameId = false
+    if (lastId != arg.ht_id) {
+      isSameId = false
+      niubaWin && niubaWin.close()
+    } else {
+      isSameId = true
+    }
+    lastId = arg.ht_id
     if (!niubaWin) {
       if (!arg.full) {
-        niubaWin =  new BrowserWindow({
-          width: arg.width,
-          height: arg.height,
-          frame: false,
-          transparent: true,
-          title: '牛霸霸屏'
-        })
+        createNBWin(arg, false)
       } else {
-        niubaWin =  new BrowserWindow({fullscreen: true, frame: false,transparent: true})
+        createNBWin(arg, true)
       }
-      /*niubaWin.loadURL(url.format({
-        pathname: path.join(__static, '/index.html'),
-        query: 'ht_id=105',
-        protocol: 'file:',
-        slashes: true
-      }))*/
-      niubaWin.loadURL('http://xnb.siweiquanjing.com/electron/?ht_id=' + 91)
-      niubaWin.on('closed', function () {
-        // Dereference the window object, usually you would store windows
-        // in an array if your app supports multi windows, this is the time
-        // when you should delete the corresponding element.
-        niubaWin = null
-      })
     } else {
       if (!arg.full) {
         niubaWin.setBounds(arg)
@@ -103,9 +122,27 @@ function createWindow () {
       
     }
   })
+}
 
-  mainWindow.on('closed', () => {
-    mainWindow = null
+function createNBWin (arg, isFullscreen) {
+  if (isFullscreen) {
+    niubaWin =  new BrowserWindow({fullscreen: true, frame: false,transparent: true})
+  } else {
+    niubaWin =  new BrowserWindow({
+      width: arg.width,
+      height: arg.height,
+      frame: false,
+      transparent: true,
+      title: '牛霸霸屏'
+    })
+  }
+  niubaWin.loadURL('http://xnb.siweiquanjing.com/electron/?ht_id=' + arg.ht_id)
+  niubaWin.on('closed', function () {
+    console.log('header')
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    niubaWin = null
   })
 }
 
