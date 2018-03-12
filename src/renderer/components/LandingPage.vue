@@ -26,18 +26,18 @@
         <el-radio v-model="screenRadio" label="1">自定义</el-radio>
         <el-radio v-model="screenRadio" label="2">全屏</el-radio>
       </el-row>
-      <el-form class="screen-form" label-width="40px" label-position="left" :model="formLabelAlign">
+      <el-form class="screen-form" v-if="displays.length > 0" label-width="40px" label-position="left" :model="formLabelAlign">
         <el-form-item label="宽">
-          <el-input type="number" v-model.number="formLabelAlign.width"></el-input>
+          <el-slider v-model="formLabelAlign.width" :max="displays[0].size.width" show-input @change="onSliderChange"></el-slider>
         </el-form-item>
         <el-form-item label="高">
-          <el-input type="number" v-model.number="formLabelAlign.height"></el-input>
+          <el-slider v-model="formLabelAlign.height" :max="displays[0].size.height" show-input @change="onSliderChange"></el-slider>
         </el-form-item>
         <el-form-item label="x">
-          <el-input type="number" v-model.number="formLabelAlign.x"></el-input>
+          <el-slider v-model="formLabelAlign.x" :max="displays[0].size.width" show-input @change="onSliderChange"></el-slider>
         </el-form-item>
         <el-form-item label="y">
-          <el-input type="number" v-model.number="formLabelAlign.y"></el-input>
+          <el-slider v-model="formLabelAlign.y" :max="displays[0].size.height" show-input @change="onSliderChange"></el-slider>
         </el-form-item>
       </el-form>
     </el-card>
@@ -64,11 +64,11 @@
     name: 'landing-page',
     data () {
       return {
-        screenRadio: '2',
+        screenRadio: '1',
         bgTypeRadio: '',
         formLabelAlign: {
-          width: 600,
-          height: 600,
+          width: 0,
+          height: 0,
           x: 0,
           y: 0
         },
@@ -79,7 +79,8 @@
           value: '105',
           label: '牛霸酒吧'
         }],
-        selectBar: '91'
+        selectBar: '91',
+        displays: []
       }
     },
     components: { SystemInformation },
@@ -92,6 +93,9 @@
         } else {
           this.$electron.ipcRenderer.send('openScreen', {full: true, ht_id: this.selectBar})
         }
+      },
+      onSliderChange () {
+        this.$electron.ipcRenderer.send('setScreenSize', this.formLabelAlign)
       }
     },
     created () {
@@ -104,8 +108,10 @@
           )
       })*/
       // 获取displays
-      // let displays = this.$electron.screen.getAllDisplays()
-      // this.displays = displays
+      let displays = this.$electron.screen.getAllDisplays()
+      this.displays = displays
+      this.formLabelAlign.width = displays[0].size.width
+      this.formLabelAlign.height = displays[0].size.height
       getAllMsg({ ht_id: 91}).then((res) => {
         this.bgTypeRadio = res.result.ht_msg.default_bg_type
       })

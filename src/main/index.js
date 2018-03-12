@@ -122,6 +122,11 @@ function createWindow () {
       
     }
   })
+  
+  ipcMain.on('setScreenSize', function(event, arg) {
+    niubaWin && niubaWin.setBounds(arg)
+  })
+
 }
 
 function createNBWin (arg, isFullscreen) {
