@@ -60,12 +60,12 @@ function createWindow () {
   /**
    * Initial window options
    */
-  //Menu.setApplicationMenu(null)
+  Menu.setApplicationMenu(null)
   
 
   if (!fs.existsSync(path.join(__dirname, '/userData/user.json'))) {
     qrcodeWin = new BrowserWindow({
-      frame: false,
+      frame: true,
       width: 400,
       height: 460,
       useContentSize: true
@@ -79,9 +79,9 @@ function createWindow () {
     ipcMain.on('loginSuccess', function(event, arg) {
       qrcodeWin.hide()
       mainWindow = new BrowserWindow({
-        height: 600,
+        height: 800,
         useContentSize: true,
-        width: 1000
+        width: 1600
       })
       mainWindow.webContents.on('dom-ready', function(){
         qrcodeWin.close()
@@ -136,12 +136,14 @@ function createNBWin (arg, isFullscreen) {
     niubaWin =  new BrowserWindow({
       width: arg.width,
       height: arg.height,
+      x: arg.x,
+      y: arg.y,
       frame: false,
       transparent: true,
       title: '牛霸霸屏'
     })
   }
-  niubaWin.loadURL('http://xnb.siweiquanjing.com/electron/?ht_id=' + arg.ht_id)
+  niubaWin.loadURL('http://niuba.siweiquanjing.com/screen/?ht_id=' + arg.ht_id)
   niubaWin.on('closed', function () {
     console.log('header')
     // Dereference the window object, usually you would store windows
