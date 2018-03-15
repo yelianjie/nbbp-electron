@@ -18,7 +18,7 @@
     </div>
     <div id="fixed_left">
       <p class="screen-out-title">屏幕输出</p>
-      <el-row v-for="(v, i) in displays" :key="i" class="screen-out-item">
+      <el-row v-for="(v, i) in displays" :key="i" class="screen-out-item" :class="{'active': activeIndex ==i}" @click.prevent="changeTabScreen(i)">
         <el-switch
           v-model="shows[i]"
           :active-text="'Display' + (i + 1)">
@@ -27,6 +27,7 @@
       </el-row>
     </div>
     <div class="main">
+      <template v-if="activeIndex != -1">
       <el-card class="box-card">
         <div slot="header" class="clearfix">
           <span>屏幕设置</span>
@@ -61,7 +62,8 @@
           <el-radio v-model="bgTypeRadio" label="0">透明</el-radio>
         </el-row>
       </el-card>
-      <el-button @click.native="openScreen">设置</el-button>
+      </template>
+      <!-- <el-button @click.native="openScreen">设置</el-button> -->
     </div>
     
   </div>
@@ -75,7 +77,7 @@
     name: 'landing-page',
     data () {
       return {
-        screenRadio: '1',
+        screenRadio: '2',
         bgTypeRadio: '',
         formLabelAlign: {
           width: 0,
@@ -92,7 +94,8 @@
         }],
         selectBar: '2',
         displays: [],
-        shows: []
+        shows: [],
+        activeIndex: -1
       }
     },
     components: { SystemInformation },
@@ -100,14 +103,56 @@
       openScreen () {
         // this.$electron.shell.openExternal(link)
         this.formLabelAlign.ht_id = this.selectBar
-        if (this.screenRadio == '1') {
-          this.$electron.ipcRenderer.send('openScreen', this.formLabelAlign)
-        } else {
-          this.$electron.ipcRenderer.send('openScreen', {full: true, ht_id: this.selectBar})
-        }
+        console.log(this.formLabelAlign)
+        this.$electron.ipcRenderer.send('openScreen', this.formLabelAlign)
       },
       onSliderChange () {
         this.$electron.ipcRenderer.send('setScreenSize', this.formLabelAlign)
+        this.saveSetting()
+      },
+      changeTabScreen (index) {
+        event.stopPropagation()
+        this.activeIndex = index
+        var settings = JSON.parse(localStorage.getItem('setting'))
+        var find = settings.find(v => v.deviceId == this.displays[index].id)
+        if (find) {
+          // 设置自定义还是全屏
+          this.screenRadio = find.data.screenRadio
+          // 设置宽高xy
+          this.formLabelAlign = find.data.formLabelAlign
+          // 设置背景类型
+          this.bgTypeRadio = find.data.bgTypeRadio
+        }
+      },
+      saveSetting () {
+        var deviceId = this.displays[this.activeIndex].id
+        var settings = JSON.parse(localStorage.getItem('setting'))
+        if (settings) {
+          var findIndex = settings.findIndex(v => v.deviceId == deviceId)
+          if (findIndex > -1) {
+            settings[findIndex].data.formLabelAlign = this.formLabelAlign
+            settings[findIndex].data.screenRadio = this.screenRadio
+            settings[findIndex].data.bgTypeRadio = this.bgTypeRadio
+            localStorage.setItem('setting', JSON.stringify(settings))
+          }
+        }
+      },
+      getCurrentDeviceIndex () {
+        if (this.activeIndex == -1) {
+          return -1
+        }
+        var deviceId = this.displays[this.activeIndex].id
+        var settings = JSON.parse(localStorage.getItem('setting'))
+         if (settings) {
+          var findIndex = settings.findIndex(v => v.deviceId == deviceId)
+          if (findIndex > -1) {
+            return findIndex
+          } else {
+            return -1
+          }
+        } else {
+          return -1
+        }
       }
     },
     created () {
@@ -122,18 +167,59 @@
       // 获取displays
       let displays = this.$electron.screen.getAllDisplays()
       var shows = []
-      displays.forEach((v) => {
-        shows.push(false)
-      })
-      this.shows = shows
       this.showsCopy = Object.assign([], this.shows)
       this.displays = displays
-      
+
       getAllMsg({ ht_id: 2}).then((res) => {
         this.bgTypeRadio = res.result.ht_msg.default_bg_type.toString()
+        // 初始化localStorage
+        if (!localStorage.getItem('setting')) {
+          var datas = []
+          displays.forEach((v) => {
+            shows.push(false)
+            var o = {
+              screenRadio: '2',
+              formLabelAlign: {
+                width: v.size.width,
+                height: v.size.height,
+                x: v.bounds.x,
+                y: v.bounds.y,
+                full: true
+              },
+              bgTypeRadio: res.result.ht_msg.default_bg_type.toString()
+            }
+            datas.push({
+              deviceId: v.id,
+              data: o
+            })
+          })
+          localStorage.setItem('setting', JSON.stringify(datas))
+        }
+        this.shows = shows
+        this.$nextTick(() => {
+          this.changeTabScreen(0)
+        })
       })
     },
     watch: {
+      screenRadio (newVal, oldVal) {
+        if (!oldVal) {
+          return false
+        }
+        console.log('radio=' + newVal)
+        if (newVal == '2') {
+          this.formLabelAlign.full = true
+        } else {
+          this.formLabelAlign.full = false
+        }
+        var index = this.getCurrentDeviceIndex()
+        if (index != -1) {
+          if (this.shows[index]) {
+            this.openScreen()
+          }
+        }
+        this.saveSetting()
+      },
       bgTypeRadio (newVal, oldVal) {
         if (!oldVal) {
           return false
@@ -142,28 +228,28 @@
         if (newVal != 0) {
           changeBgType({ ht_id: 2, type: newVal}).then((res) => {})
         }
+        this.saveSetting()
       },
       shows (newVal, oldVal) {
         if (newVal.length != oldVal.length) {
           return false
         }
-        console.log(newVal, oldVal)
         var find = -1
         newVal.forEach((v, i) => {
           if (v != this.showsCopy[i]) {
             find = i
           }
         })
-        console.log(find)
         this.showsCopy = Object.assign([], newVal)
         if (find > -1) {
-          // 打开大屏幕
+          // 打开或关闭大屏幕
           var _display = this.displays[find]
-          /*this.formLabelAlign.width = _display.size.width
-          this.formLabelAlign.height = _display.size.height
-          this.formLabelAlign.x = _display.bounds.x
-          this.formLabelAlign.y = _display.bounds.y*/
-          this.openScreen()
+          if (this.shows[find]) {
+            // 打开
+            this.openScreen()
+          } else {
+            
+          } 
         }
       }
     }
@@ -210,7 +296,7 @@
     background-color: #fff;
     z-index: 1;
     box-shadow: 0 0 5px 1px rgba(0,0,0,.15);
-    padding: 20px;
+    padding-top: 20px;
   }
   .screen-form {
     margin-top:  20px;
@@ -227,11 +313,14 @@
     margin-top: 6px;
   }
   .screen-out-title {
-    margin-bottom: 20px;
+    text-indent: 20px;
     padding-bottom: 20px;
     border-bottom: 1px solid #ebeef5;
   }
-  .screen-out {
-    margin-bottom: 20px;
+  .screen-out-item {
+    padding: 20px;
+  }
+  .screen-out-item.active {
+    background-color: #f2f2f2;
   }
 </style>
