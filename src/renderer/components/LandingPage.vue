@@ -86,76 +86,63 @@
           y: 0
         },
         bars: [{
-          value: '2',
+          value: '1',
           label: '告白气球酒吧'
-        }, {
-          value: '3',
-          label: '牛霸酒吧'
         }],
-        selectBar: '2',
+        selectBar: '1',
         displays: [],
         shows: [],
-        activeIndex: -1
+        activeIndex: -1,
+        clickSelect: -1
       }
     },
     components: { SystemInformation },
     methods: {
-      openScreen () {
+      openScreen (open) {
         // this.$electron.shell.openExternal(link)
         this.formLabelAlign.ht_id = this.selectBar
-        console.log(this.formLabelAlign)
-        this.$electron.ipcRenderer.send('openScreen', this.formLabelAlign)
+        var open = open != undefined ? open : true
+        this.$electron.ipcRenderer.send('openScreen', {status: open, ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio})
       },
       onSliderChange () {
-        this.$electron.ipcRenderer.send('setScreenSize', this.formLabelAlign)
-        this.saveSetting()
+        if (this.clickSelect != -1) {
+          this.$electron.ipcRenderer.send('setScreenSize', {ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio})
+          this.saveSetting()
+        }
       },
       changeTabScreen (index) {
         event.stopPropagation()
         this.activeIndex = index
         var settings = JSON.parse(localStorage.getItem('setting'))
-        var find = settings.find(v => v.deviceId == this.displays[index].id)
+        var find = settings[this.displays[index].id]
         if (find) {
           // 设置自定义还是全屏
-          this.screenRadio = find.data.screenRadio
+          this.screenRadio = find.screenRadio
           // 设置宽高xy
-          this.formLabelAlign = find.data.formLabelAlign
+          this.formLabelAlign = find.formLabelAlign
           // 设置背景类型
-          this.bgTypeRadio = find.data.bgTypeRadio
+          this.bgTypeRadio = find.bgTypeRadio
         }
       },
       saveSetting () {
         var deviceId = this.displays[this.activeIndex].id
         var settings = JSON.parse(localStorage.getItem('setting'))
         if (settings) {
-          var findIndex = settings.findIndex(v => v.deviceId == deviceId)
-          if (findIndex > -1) {
-            settings[findIndex].data.formLabelAlign = this.formLabelAlign
-            settings[findIndex].data.screenRadio = this.screenRadio
-            settings[findIndex].data.bgTypeRadio = this.bgTypeRadio
-            localStorage.setItem('setting', JSON.stringify(settings))
-          }
+          settings[deviceId].formLabelAlign = this.formLabelAlign
+          settings[deviceId].screenRadio = this.screenRadio
+          settings[deviceId].bgTypeRadio = this.bgTypeRadio
+          localStorage.setItem('setting', JSON.stringify(settings))
         }
       },
-      getCurrentDeviceIndex () {
+      getCurrentDeviceId () {
         if (this.activeIndex == -1) {
           return -1
         }
-        var deviceId = this.displays[this.activeIndex].id
-        var settings = JSON.parse(localStorage.getItem('setting'))
-         if (settings) {
-          var findIndex = settings.findIndex(v => v.deviceId == deviceId)
-          if (findIndex > -1) {
-            return findIndex
-          } else {
-            return -1
-          }
-        } else {
-          return -1
-        }
+       return this.displays[this.activeIndex].id
       }
     },
     created () {
+      var _self = this
       /*fs.mkdir('./userData',  (error) => {
 
           fs.writeFileSync(
@@ -169,12 +156,12 @@
       var shows = []
       this.showsCopy = Object.assign([], this.shows)
       this.displays = displays
-
-      getAllMsg({ ht_id: 2}).then((res) => {
+      var deviceId = displays[0].id
+      getAllMsg({ ht_id: this.selectBar}).then((res) => {
         this.bgTypeRadio = res.result.ht_msg.default_bg_type.toString()
         // 初始化localStorage
         if (!localStorage.getItem('setting')) {
-          var datas = []
+          var datas = {}
           displays.forEach((v) => {
             shows.push(false)
             var o = {
@@ -188,10 +175,7 @@
               },
               bgTypeRadio: res.result.ht_msg.default_bg_type.toString()
             }
-            datas.push({
-              deviceId: v.id,
-              data: o
-            })
+            datas[deviceId] = o
           })
           localStorage.setItem('setting', JSON.stringify(datas))
         }
@@ -200,20 +184,28 @@
           this.changeTabScreen(0)
         })
       })
+
+      // 监听大屏幕关闭状态 修改 switch
+      this.$electron.ipcRenderer.on('setSwitchOff', function (event, arg) {
+        var index = _self.displays.findIndex(v => v.id == arg.deviceId)
+        if (index > -1 && _self.shows[index]) {
+          _self.$set(_self.shows, index, false)
+        }
+      })
     },
     watch: {
       screenRadio (newVal, oldVal) {
         if (!oldVal) {
           return false
         }
-        console.log('radio=' + newVal)
         if (newVal == '2') {
           this.formLabelAlign.full = true
         } else {
           this.formLabelAlign.full = false
         }
-        var index = this.getCurrentDeviceIndex()
-        if (index != -1) {
+        var deviceId = this.getCurrentDeviceId()
+        if (deviceId != -1) {
+          var index = this.displays.findIndex(v => v.deviceId == deviceId)
           if (this.shows[index]) {
             this.openScreen()
           }
@@ -226,8 +218,9 @@
         }
         var _self = this
         if (newVal != 0) {
-          changeBgType({ ht_id: 2, type: newVal}).then((res) => {})
+          changeBgType({ ht_id: this.selectBar, type: newVal}).then((res) => {})
         }
+        this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: newVal})
         this.saveSetting()
       },
       shows (newVal, oldVal) {
@@ -240,15 +233,17 @@
             find = i
           }
         })
+        this.clickSelect = find
         this.showsCopy = Object.assign([], newVal)
         if (find > -1) {
           // 打开或关闭大屏幕
           var _display = this.displays[find]
-          if (this.shows[find]) {
+          console.log(newVal)
+          if (newVal[find]) {
             // 打开
             this.openScreen()
           } else {
-            
+            this.openScreen(false)
           } 
         }
       }

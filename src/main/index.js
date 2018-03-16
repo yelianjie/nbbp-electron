@@ -51,7 +51,7 @@ autoUpdater.on("update-downloaded", info => {
 
 let mainWindow
 let qrcodeWin
-let niubaWin
+let niubaWins = {}
 const winURL = process.env.NODE_ENV === 'development'
   ? `http://localhost:9080`
   : `file://${__dirname}/index.html`
@@ -97,59 +97,75 @@ function createWindow () {
     })
   }
   
-  var lastId = 0
+  // var lastId = 0
   ipcMain.on('openScreen', function(event, arg) {
-    var isSameId = false
+    /*var isSameId = false
     if (lastId != arg.ht_id) {
       isSameId = false
-      niubaWin && niubaWin.close()
+      niubaWins[arg.deviceId] && niubaWins[arg.deviceId].close()
     } else {
       isSameId = true
     }
-    lastId = arg.ht_id
-    if (!niubaWin) {
-      if (!arg.full) {
+    lastId = arg.ht_id*/
+    if (arg.status != undefined && !arg.status) {
+      niubaWins[arg.deviceId] && niubaWins[arg.deviceId].close()
+      return false
+    }
+    if (!niubaWins[arg.deviceId]) {
+      if (!arg.size.full) {
         createNBWin(arg, false)
       } else {
         createNBWin(arg, true)
       }
     } else {
-      if (!arg.full) {
-        niubaWin.setBounds(arg)
+      if (!arg.size.full) {
+        niubaWins[arg.deviceId].setBounds(arg.size)
       } else {
-        niubaWin.setFullScreen(true)
+        niubaWins[arg.deviceId].setFullScreen(true)
       }
       
     }
   })
-  
+  // 改变屏幕大小
   ipcMain.on('setScreenSize', function(event, arg) {
-    niubaWin && niubaWin.setBounds(arg)
+    niubaWins[arg.deviceId] && niubaWins[arg.deviceId].setBounds(arg.size)
   })
 
+  // 改变网页设置
+  ipcMain.on('systemSetting', function(event, arg) {
+    niubaWins[arg.deviceId] && niubaWins[arg.deviceId].webContents.send('setting',  arg)
+  })
 }
 
 function createNBWin (arg, isFullscreen) {
   if (isFullscreen) {
-    niubaWin =  new BrowserWindow({fullscreen: true, frame: false,transparent: true})
+    niubaWins[arg.deviceId] =  new BrowserWindow({fullscreen: true, frame: false,transparent: true})
   } else {
-    niubaWin =  new BrowserWindow({
-      width: arg.width,
-      height: arg.height,
-      x: arg.x,
-      y: arg.y,
+    niubaWins[arg.deviceId] =  new BrowserWindow({
+      width: arg.size.width,
+      height: arg.size.height,
+      x: arg.size.x,
+      y: arg.size.y,
       frame: false,
       transparent: true,
-      title: '牛霸霸屏'
+      title: '牛霸霸屏',
+      resizable: false,
+      movable: false
     })
   }
-  niubaWin.loadURL('http://niuba.siweiquanjing.com/screen/?ht_id=' + arg.ht_id)
-  niubaWin.on('closed', function () {
-    console.log('header')
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
-    niubaWin = null
+  
+  var params = {
+    ht_id: arg.ht_id,
+    bgType: arg.bgTypeRadio
+  }
+  var url = http_builder_url('http://niuba.siweiquanjing.com/electron/', params)
+  console.log(url)
+  niubaWins[arg.deviceId].loadURL(url)
+  niubaWins[arg.deviceId].on('close', function () {
+    mainWindow.webContents.send('setSwitchOff',  {deviceId: arg.deviceId})
+  })
+  niubaWins[arg.deviceId].on('closed', function () {
+    niubaWins[arg.deviceId] = null
   })
 }
 
@@ -172,6 +188,22 @@ app.on("ready", function() {
   autoUpdater.setFeedURL("http://xnb.siweiquanjing.com/app/");
   autoUpdater.checkForUpdatesAndNotify();
 });
+
+
+function http_builder_url(url, data) {
+    if(typeof(url) == 'undefined' || url == null || url == '') {
+        return '';
+    }
+    if(typeof(data) == 'undefined' || data == null || typeof(data) != 'object') {
+        return '';
+    }
+    url += (url.indexOf("?") != -1) ? "" : "?";
+    for(var k in data) {
+        url += ((url.indexOf("=") != -1) ? "&" : "") + k + "=" + encodeURI(data[k]);
+        console.log(url);
+    }
+    return url;
+}
 
 /**
  * Auto Updater
