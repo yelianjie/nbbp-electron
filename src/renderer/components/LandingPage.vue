@@ -86,10 +86,10 @@
           y: 0
         },
         bars: [{
-          value: '1',
+          value: '8',
           label: '告白气球酒吧'
         }],
-        selectBar: '1',
+        selectBar: '8',
         displays: [],
         shows: [],
         activeIndex: -1,
