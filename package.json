@@ -1,8 +1,8 @@
 {
-  "name": "nbbp-electron",
+  "name": "nbbp",
   "version": "0.0.0",
   "author": "yelj <15558201191@sina.cn>",
-  "description": "An electron-vue project",
+  "description": "牛霸霸屏",
   "license": null,
   "main": "./dist/electron/main.js",
   "scripts": {
@@ -17,8 +17,8 @@
     "postinstall": ""
   },
   "build": {
-    "productName": "nbbp-electron",
-    "appId": "org.simulatedgreg.electron-vue",
+    "productName": "牛霸霸屏",
+    "appId": "org.simulatedgreg.nbbp-vue",
     "directories": {
       "output": "build"
     },
