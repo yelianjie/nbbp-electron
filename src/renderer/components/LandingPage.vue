@@ -187,7 +187,8 @@
                 y: v.bounds.y,
                 full: true
               },
-              bgTypeRadio: res.result.ht_msg.default_bg_type.toString()
+              bgTypeRadio: res.result.ht_msg.default_bg_type.toString(),
+              animationRadio: '1'
             }
             datas[deviceId] = o
           })
@@ -219,7 +220,7 @@
         }
         var deviceId = this.getCurrentDeviceId()
         if (deviceId != -1) {
-          var index = this.displays.findIndex(v => v.deviceId == deviceId)
+          var index = this.displays.findIndex(v => v.id == deviceId)
           if (this.shows[index]) {
             this.openScreen()
           }
