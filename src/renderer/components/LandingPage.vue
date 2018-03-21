@@ -62,6 +62,16 @@
           <el-radio v-model="bgTypeRadio" label="0">透明</el-radio>
         </el-row>
       </el-card>
+
+      <el-card class="box-card">
+        <div slot="header" class="clearfix">
+          <span>滚动设置</span>
+        </div>
+        <el-row>
+          <el-radio v-model="animationRadio" label="1">滚动</el-radio>
+          <el-radio v-model="animationRadio" label="2">弹幕</el-radio>
+        </el-row>
+      </el-card>
       </template>
       <!-- <el-button @click.native="openScreen">设置</el-button> -->
     </div>
@@ -79,6 +89,7 @@
       return {
         screenRadio: '2',
         bgTypeRadio: '',
+        animationRadio: '1',
         formLabelAlign: {
           width: 0,
           height: 0,
@@ -86,10 +97,10 @@
           y: 0
         },
         bars: [{
-          value: '8',
+          value: '1',
           label: '告白气球酒吧'
         }],
-        selectBar: '8',
+        selectBar: '1',
         displays: [],
         shows: [],
         activeIndex: -1,
@@ -102,11 +113,11 @@
         // this.$electron.shell.openExternal(link)
         this.formLabelAlign.ht_id = this.selectBar
         var open = open != undefined ? open : true
-        this.$electron.ipcRenderer.send('openScreen', {status: open, ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio})
+        this.$electron.ipcRenderer.send('openScreen', {status: open, ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio, animationRadio: this.animationRadio})
       },
       onSliderChange () {
         if (this.clickSelect != -1) {
-          this.$electron.ipcRenderer.send('setScreenSize', {ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio})
+          this.$electron.ipcRenderer.send('setScreenSize', {ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio, animationRadio: this.animationRadio})
           this.saveSetting()
         }
       },
@@ -122,6 +133,8 @@
           this.formLabelAlign = find.formLabelAlign
           // 设置背景类型
           this.bgTypeRadio = find.bgTypeRadio
+          // 设置动画类型
+          this.animationRadio = find.animationRadio
         }
       },
       saveSetting () {
@@ -131,6 +144,7 @@
           settings[deviceId].formLabelAlign = this.formLabelAlign
           settings[deviceId].screenRadio = this.screenRadio
           settings[deviceId].bgTypeRadio = this.bgTypeRadio
+          settings[deviceId].animationRadio = this.animationRadio
           localStorage.setItem('setting', JSON.stringify(settings))
         }
       },
@@ -221,6 +235,11 @@
           changeBgType({ ht_id: this.selectBar, type: newVal}).then((res) => {})
         }
         this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: newVal})
+        this.saveSetting()
+      },
+      animationRadio (newVal, oldVal) {
+        var _self = this
+        this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setAnimation', value: newVal})
         this.saveSetting()
       },
       shows (newVal, oldVal) {

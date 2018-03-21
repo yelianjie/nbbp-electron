@@ -156,11 +156,12 @@ function createNBWin (arg, isFullscreen) {
   
   var params = {
     ht_id: arg.ht_id,
-    bgType: arg.bgTypeRadio,
-    from: 'exe'
+    bgTypeRadio: arg.bgTypeRadio,
+    from: 'exe',
+    animationRadio: arg.animationRadio
   }
-  var _root = 'http://niuba.siweiquanjing.com/electron/'
-  //var _root = 'http://localhost/screen20180320/'
+  //var _root = 'http://niuba.siweiquanjing.com/electron/'
+  var _root = 'http://localhost/screen20180320/'
   var url = http_builder_url(_root, params)
   console.log(url)
   niubaWins[arg.deviceId].loadURL(url)

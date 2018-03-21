@@ -5,7 +5,7 @@ import axios from 'axios'
 Vue.http = Vue.prototype.$http = axios
 Vue.config.productionTip = false
 
-const baseURL = 'http://niuba.siweiquanjing.com'
+const baseURL = 'http://xnb.siweiquanjing.com'
 Vue.http.defaults.baseURL = baseURL
 Vue.http.defaults.timeout = 5000
 Vue.http.interceptors.request.use(function (config) {
