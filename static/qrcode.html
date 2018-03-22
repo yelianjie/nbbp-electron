@@ -24,13 +24,31 @@
             text-align: center;
             margin-top: 20px;
         }
+        #progress {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            top: 0;
+            height: 100%;
+            z-index: 1;
+            background-color: rgba(255, 255, 255, 0.6);
+            display: none;
+        }
+        #container {
+          margin: 100px auto;
+          width: 200px;
+          height: 200px;
+          position: relative;
+        }
     </style>
 </head>
 <body>
-    <p class="tip">请扫描二维码登录</p>
+    <p class="tip">请扫描二维码登录12345655555ada</p>
     <div><img id="qrcode" src="http://xnb.siweiquanjing.com/uploads/er/36a2c85e5cc8d3483f95e307934f3764.png" class="qrcode"></div>
+    <div id="progress"><div id="container"></div><div id="text"></div></div>
     <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
-    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>    
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="progressbar.min.js"></script>  
     <script type="text/javascript">
         var ipcRenderer = require('electron').ipcRenderer
         $(function(){
@@ -40,7 +58,45 @@
                 event.preventDefault();
             });
         })
+        var bar = new ProgressBar.Circle(document.getElementById("container"), {
+          color: '#aaa',
+          // This has to be the same size as the maximum width to
+          // prevent clipping
+          strokeWidth: 4,
+          trailWidth: 1,
+          easing: 'easeInOut',
+          duration: 1400,
+          text: {
+            autoStyleContainer: false
+          },
+          from: { color: '#aaa', width: 1 },
+          to: { color: '#333', width: 4 },
+          // Set default step function for all animate calls
+          step: function(state, circle) {
+            circle.path.setAttribute('stroke', state.color);
+            circle.path.setAttribute('stroke-width', state.width);
+
+            var value = Math.round(circle.value() * 100);
+            if (value === 0) {
+              circle.setText('');
+            } else {
+              circle.setText(value);
+            }
+
+          }
+        });
+        bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
+        bar.text.style.fontSize = '2rem';
+
+        bar.animate(0.0);  // Number from 0.0 to 1.0
+        ipcRenderer.on('checkUpdate6', function(event, arg) {
+            document.getElementById('progress').style.display = 'block'
+            document.getElementById('text').innerHTML = arg.text + arg.percent
+            var v = Number((Number(arg.percent) / 100).toFixed(2))
+            bar && bar.animate(v);
+        })
     </script>
+    
     <script>if (window.module) module = window.module;</script>
 </body>
 </html>

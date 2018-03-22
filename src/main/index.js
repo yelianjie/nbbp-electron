@@ -26,6 +26,7 @@ autoUpdater.on("checking-for-update", () => {
 });
 autoUpdater.on("update-available", info => {
   sendStatusToWindow("Update available.");
+  qrcodeWin && qrcodeWin.webContents.send('checkUpdate2', {text: 'Update available.'})
 });
 autoUpdater.on("update-not-available", info => {
   sendStatusToWindow("Update not available.");
@@ -43,10 +44,13 @@ autoUpdater.on("download-progress", progressObj => {
     "/" +
     progressObj.total +
     ")";
+    qrcodeWin && qrcodeWin.webContents.send('checkUpdate6', {text: 'downloading', percent: progressObj.percent})
   sendStatusToWindow(log_message);
 });
 autoUpdater.on("update-downloaded", info => {
   sendStatusToWindow("Update downloaded");
+  qrcodeWin && qrcodeWin.webContents.send('checkUpdate5', {text: 'Update downloaded'})
+  autoUpdater.quitAndInstall()
 });
 
 let mainWindow
