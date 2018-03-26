@@ -61,14 +61,17 @@
           <el-radio v-model="bgTypeRadio" label="1">图片</el-radio>
           <el-radio v-model="bgTypeRadio" label="0">透明</el-radio>
         </el-row>
+        <el-row style="margin-top: 20px;">
+          <el-button plain v-for="(v, i) in showBgs" :class="{'active': v.id == selectId}" :key="i" @click="changeBg(v.url, v.type, v.id)">{{v.name}}</el-button>
+        </el-row>
       </el-card>
 
       <el-card class="box-card">
         <div slot="header" class="clearfix">
-          <span>滚动设置</span>
+          <span>消息设置</span>
         </div>
         <el-row>
-          <el-radio v-model="animationRadio" label="1">滚动</el-radio>
+          <el-radio v-model="animationRadio" label="1">向上滚动</el-radio>
           <el-radio v-model="animationRadio" label="2">弹幕</el-radio>
         </el-row>
       </el-card>
@@ -81,7 +84,7 @@
 
 <script>
   import SystemInformation from './LandingPage/SystemInformation'
-  import { changeBgType, getAllMsg } from '../api/'
+  import { changeBgType, getAllMsg, saveBackground } from '../api/'
   import fs from 'fs'
   export default {
     name: 'landing-page',
@@ -104,11 +107,19 @@
         displays: [],
         shows: [],
         activeIndex: -1,
-        clickSelect: -1
+        clickSelect: -1,
+        result: {},
+        selectId: '-1'
       }
     },
     components: { SystemInformation },
     methods: {
+      changeBg (url, type, id) {
+        this.selectId = id
+        type = ~~(type)
+        saveBackground({ht_id: this.selectBar, type: type, background_id: id}).then((res) => {})
+        this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: {url: url, type: type}})
+      },
       openScreen (open) {
         // this.$electron.shell.openExternal(link)
         this.formLabelAlign.ht_id = this.selectBar
@@ -172,7 +183,15 @@
       this.displays = displays
       var deviceId = displays[0].id
       getAllMsg({ ht_id: this.selectBar}).then((res) => {
-        this.bgTypeRadio = res.result.ht_msg.default_bg_type.toString()
+        this.result = res.result
+        if (res.result.ht_msg.default_bg_type == '1') {
+          // 默认背景是图片
+          this.selectId = res.result.bg[0].picId
+        } else if (res.result.ht_msg.default_bg_type == '2') {
+          // 默认背景是视频
+          this.selectId = res.result.bg[0].videoId
+        }
+        this.bgTypeRadio = res.result.ht_msg.default_bg_type.toString(1)
         // 初始化localStorage
         if (!localStorage.getItem('setting')) {
           var datas = {}
@@ -208,6 +227,18 @@
         }
       })
     },
+    computed: {
+      showBgs () {
+        var type = ~~(this.bgTypeRadio)
+        if (type >= 0 && this.result.pt_result ) {
+          if (type == 0) {
+            return []
+          } else {
+            return this.result.pt_result.filter((v) => ~~(v.type) === type )
+          }
+        }
+      }
+    },
     watch: {
       screenRadio (newVal, oldVal) {
         if (!oldVal) {
@@ -231,11 +262,14 @@
         if (!oldVal) {
           return false
         }
-        var _self = this
+        if (newVal == 0) {
+          this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: {type: newVal}})
+        }
+       /* var _self = this
         if (newVal != 0) {
           changeBgType({ ht_id: this.selectBar, type: newVal}).then((res) => {})
         }
-        this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: newVal})
+        this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: newVal})*/
         this.saveSetting()
       },
       animationRadio (newVal, oldVal) {
@@ -281,7 +315,20 @@
   }
 
   body { font-family: 'Source Sans Pro', sans-serif; }
-    
+  ::-webkit-scrollbar {
+    width: 8px;
+    background-color: #f2f2f2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background-color: #f2f2f2;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #409eff;
+    border-radius: 5px;
+  }
+
   #wrapper {
     background:
       radial-gradient(
@@ -299,7 +346,7 @@
     left: 0;
     width: 100%;
     background-color: #fff;
-    z-index: 2;
+    z-index: 1002;
     box-shadow: 0 0 5px 1px rgba(0,0,0,.15);
   }
   #fixed_left {
@@ -337,5 +384,10 @@
   }
   .screen-out-item.active {
     background-color: #f2f2f2;
+  }
+  .el-button.is-plain.active {
+    background: #fff;
+    border-color: #409EFF;
+    color: #409EFF;
   }
 </style>

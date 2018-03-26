@@ -165,7 +165,7 @@ function createNBWin (arg, isFullscreen) {
     animationRadio: arg.animationRadio
   }
   //var _root = 'http://niuba.siweiquanjing.com/electron/'
-  var _root = 'http://localhost/screen20180320/'
+  var _root = 'http://niuba.siweiquanjing.com/electron/'
   var url = http_builder_url(_root, params)
   console.log(url)
   niubaWins[arg.deviceId].loadURL(url)

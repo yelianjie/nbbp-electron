@@ -31,7 +31,7 @@
             top: 0;
             height: 100%;
             z-index: 1;
-            background-color: rgba(255, 255, 255, 0.6);
+            background-color: #fff;
             display: none;
         }
         #container {
@@ -43,7 +43,7 @@
     </style>
 </head>
 <body>
-    <p class="tip">请扫描二维码登录12345655555ada</p>
+    <p class="tip">请扫描二维码登录</p>
     <div><img id="qrcode" src="http://xnb.siweiquanjing.com/uploads/er/36a2c85e5cc8d3483f95e307934f3764.png" class="qrcode"></div>
     <div id="progress"><div id="container"></div><div id="text"></div></div>
     <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
@@ -62,14 +62,14 @@
           color: '#aaa',
           // This has to be the same size as the maximum width to
           // prevent clipping
-          strokeWidth: 4,
-          trailWidth: 1,
+          strokeWidth: 0,
+          trailWidth: 4,
           easing: 'easeInOut',
           duration: 1400,
           text: {
             autoStyleContainer: false
           },
-          from: { color: '#aaa', width: 1 },
+          from: { color: '#aaa', width: 4 },
           to: { color: '#333', width: 4 },
           // Set default step function for all animate calls
           step: function(state, circle) {
@@ -88,7 +88,7 @@
         bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
         bar.text.style.fontSize = '2rem';
 
-        bar.animate(0.0);  // Number from 0.0 to 1.0
+        bar.animate(0);  // Number from 0.0 to 1.0
         ipcRenderer.on('checkUpdate6', function(event, arg) {
             document.getElementById('progress').style.display = 'block'
             document.getElementById('text').innerHTML = arg.text + arg.percent

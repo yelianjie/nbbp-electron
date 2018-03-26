@@ -7,3 +7,7 @@ export const changeBgType = (data) => {
 export const getAllMsg = (data) => {
     return request('/weixin/Screen/getHotelAllMsg', 'POST', data)
 }
+
+export const saveBackground = (data) => {
+    return request('/weixin/screen/saveBackground', 'POST', data)
+}
