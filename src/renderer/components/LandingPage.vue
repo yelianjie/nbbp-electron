@@ -167,6 +167,7 @@
       }
     },
     created () {
+
       var _self = this
       /*fs.mkdir('./userData',  (error) => {
 
@@ -218,7 +219,8 @@
           this.changeTabScreen(0)
         })
       })
-
+      var bars = this.$electron.remote.getGlobal('sharedObject').bars
+      // console.log(bars)
       // 监听大屏幕关闭状态 修改 switch
       this.$electron.ipcRenderer.on('setSwitchOff', function (event, arg) {
         var index = _self.displays.findIndex(v => v.id == arg.deviceId)

@@ -50,7 +50,10 @@
     <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
     <script type="text/javascript" src="progressbar.min.js"></script>  
     <script type="text/javascript">
+
         var ipcRenderer = require('electron').ipcRenderer
+        var remote = require('electron').remote
+        remote.getGlobal('sharedObject').bars = [1, 2]
         $(function(){
             $('#qrcode').on('click', function(event) {
                 ipcRenderer.send('loginSuccess', null)

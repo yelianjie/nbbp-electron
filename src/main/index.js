@@ -26,7 +26,7 @@ autoUpdater.on("checking-for-update", () => {
 });
 autoUpdater.on("update-available", info => {
   sendStatusToWindow("Update available.");
-  qrcodeWin && qrcodeWin.webContents.send('checkUpdate2', {text: 'Update available.'})
+  qrcodeWin && qrcodeWin.webContents.send('checkUpdate2', { text: 'Update available.' })
 });
 autoUpdater.on("update-not-available", info => {
   sendStatusToWindow("Update not available.");
@@ -44,63 +44,63 @@ autoUpdater.on("download-progress", progressObj => {
     "/" +
     progressObj.total +
     ")";
-    qrcodeWin && qrcodeWin.webContents.send('checkUpdate6', {text: 'downloading', percent: progressObj.percent})
+  qrcodeWin && qrcodeWin.webContents.send('checkUpdate6', { text: 'downloading', percent: progressObj.percent })
   sendStatusToWindow(log_message);
 });
 autoUpdater.on("update-downloaded", info => {
   sendStatusToWindow("Update downloaded");
-  qrcodeWin && qrcodeWin.webContents.send('checkUpdate5', {text: 'Update downloaded'})
+  qrcodeWin && qrcodeWin.webContents.send('checkUpdate5', { text: 'Update downloaded' })
   autoUpdater.quitAndInstall()
 });
 
 let mainWindow
 let qrcodeWin
 let niubaWins = {}
-const winURL = process.env.NODE_ENV === 'development'
-  ? `http://localhost:9080`
-  : `file://${__dirname}/index.html`
+global.sharedObject = {
+  bars: []
+}
+const winURL = process.env.NODE_ENV === 'development' ?
+  `http://localhost:9080` :
+  `file://${__dirname}/index.html`
 
-function createWindow () {
+function createWindow() {
   /**
    * Initial window options
    */
   Menu.setApplicationMenu(null)
-  
 
-  if (!fs.existsSync(path.join(__dirname, '/userData/user.json'))) {
-    qrcodeWin = new BrowserWindow({
-      frame: true,
-      width: 400,
-      height: 460,
-      useContentSize: true
-    })
+  qrcodeWin = new BrowserWindow({
+    frame: true,
+    width: 400,
+    height: 460,
+    useContentSize: true
+  })
 
-    qrcodeWin.loadURL(url.format({
-      pathname: path.join(__static, '/qrcode.html'),
-      protocol: 'file:',
-      slashes: true
-    }))
-    ipcMain.on('loginSuccess', function(event, arg) {
-      qrcodeWin.hide()
-      mainWindow = new BrowserWindow({
-        height: 800,
-        useContentSize: true,
-        width: 1600
-      })
-      mainWindow.webContents.on('dom-ready', function(){
-        qrcodeWin.close()
-      })
-      mainWindow.loadURL(winURL)
-      mainWindow.on('closed', () => {
-        mainWindow = null
-      })
+  qrcodeWin.loadURL(url.format({
+    pathname: path.join(__static, '/qrcode.html'),
+    protocol: 'file:',
+    slashes: true
+  }))
+  ipcMain.on('loginSuccess', function(event, arg) {
+    qrcodeWin.hide()
+    mainWindow = new BrowserWindow({
+      height: 800,
+      useContentSize: true,
+      width: 1600
     })
-    
-    qrcodeWin.on('closed', () => {
-      qrcodeWin = null
+    mainWindow.webContents.on('dom-ready', function() {
+      qrcodeWin.close()
     })
-  }
-  
+    mainWindow.loadURL(winURL)
+    mainWindow.on('closed', () => {
+      mainWindow = null
+    })
+  })
+
+  qrcodeWin.on('closed', () => {
+    qrcodeWin = null
+  })
+
   // var lastId = 0
   ipcMain.on('openScreen', function(event, arg) {
     /*var isSameId = false
@@ -127,7 +127,7 @@ function createWindow () {
       } else {
         niubaWins[arg.deviceId].setFullScreen(true)
       }
-      
+
     }
   })
   // 改变屏幕大小
@@ -137,15 +137,15 @@ function createWindow () {
 
   // 改变网页设置
   ipcMain.on('systemSetting', function(event, arg) {
-    niubaWins[arg.deviceId] && niubaWins[arg.deviceId].webContents.send('setting',  arg)
+    niubaWins[arg.deviceId] && niubaWins[arg.deviceId].webContents.send('setting', arg)
   })
 }
 
-function createNBWin (arg, isFullscreen) {
+function createNBWin(arg, isFullscreen) {
   if (isFullscreen) {
-    niubaWins[arg.deviceId] =  new BrowserWindow({fullscreen: true, frame: false,transparent: true})
+    niubaWins[arg.deviceId] = new BrowserWindow({ fullscreen: true, frame: false, transparent: true })
   } else {
-    niubaWins[arg.deviceId] =  new BrowserWindow({
+    niubaWins[arg.deviceId] = new BrowserWindow({
       width: arg.size.width,
       height: arg.size.height,
       x: arg.size.x,
@@ -157,7 +157,7 @@ function createNBWin (arg, isFullscreen) {
       movable: false
     })
   }
-  
+
   var params = {
     ht_id: arg.ht_id,
     bgTypeRadio: arg.bgTypeRadio,
@@ -169,10 +169,10 @@ function createNBWin (arg, isFullscreen) {
   var url = http_builder_url(_root, params)
   console.log(url)
   niubaWins[arg.deviceId].loadURL(url)
-  niubaWins[arg.deviceId].on('close', function () {
-    mainWindow.webContents.send('setSwitchOff',  {deviceId: arg.deviceId})
+  niubaWins[arg.deviceId].on('close', function() {
+    mainWindow.webContents.send('setSwitchOff', { deviceId: arg.deviceId })
   })
-  niubaWins[arg.deviceId].on('closed', function () {
+  niubaWins[arg.deviceId].on('closed', function() {
     niubaWins[arg.deviceId] = null
   })
 }
@@ -199,18 +199,18 @@ app.on("ready", function() {
 
 
 function http_builder_url(url, data) {
-    if(typeof(url) == 'undefined' || url == null || url == '') {
-        return '';
-    }
-    if(typeof(data) == 'undefined' || data == null || typeof(data) != 'object') {
-        return '';
-    }
-    url += (url.indexOf("?") != -1) ? "" : "?";
-    for(var k in data) {
-        url += ((url.indexOf("=") != -1) ? "&" : "") + k + "=" + encodeURI(data[k]);
-        console.log(url);
-    }
-    return url;
+  if (typeof(url) == 'undefined' || url == null || url == '') {
+    return '';
+  }
+  if (typeof(data) == 'undefined' || data == null || typeof(data) != 'object') {
+    return '';
+  }
+  url += (url.indexOf("?") != -1) ? "" : "?";
+  for (var k in data) {
+    url += ((url.indexOf("=") != -1) ? "&" : "") + k + "=" + encodeURI(data[k]);
+    console.log(url);
+  }
+  return url;
 }
 
 /**
