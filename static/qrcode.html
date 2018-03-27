@@ -32,7 +32,7 @@
             height: 100%;
             z-index: 1;
             background-color: #fff;
-            display: none;
+            display: block;
         }
         #container {
           margin: 100px auto;
@@ -40,12 +40,21 @@
           height: 200px;
           position: relative;
         }
+        #text {
+          font-size: 24px;
+          color: #30cbe4;
+          text-align: center;
+          position: absolute;
+          bottom: 40px;
+          left: 0;
+          width: 100%;
+        }
     </style>
 </head>
 <body>
     <p class="tip">请扫描二维码登录</p>
     <div><img id="qrcode" src="http://xnb.siweiquanjing.com/uploads/er/36a2c85e5cc8d3483f95e307934f3764.png" class="qrcode"></div>
-    <div id="progress"><div id="container"></div><div id="text"></div></div>
+    <div id="progress"><div id="container"></div><div id="text">正在更新中</div></div>
     <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
     <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
     <script type="text/javascript" src="progressbar.min.js"></script>  
@@ -72,8 +81,8 @@
           text: {
             autoStyleContainer: false
           },
-          from: { color: '#aaa', width: 4 },
-          to: { color: '#333', width: 4 },
+          from: { color: '#fe5055', width: 4 },
+          to: { color: '#b304f6', width: 4 },
           // Set default step function for all animate calls
           step: function(state, circle) {
             circle.path.setAttribute('stroke', state.color);
@@ -94,7 +103,9 @@
         bar.animate(0);  // Number from 0.0 to 1.0
         ipcRenderer.on('checkUpdate6', function(event, arg) {
             document.getElementById('progress').style.display = 'block'
-            document.getElementById('text').innerHTML = arg.text + arg.percent
+            if (~~(arg.percent) == 100) {
+                document.getElementById('text').innerHTML = '更新完成'
+            }
             var v = Number((Number(arg.percent) / 100).toFixed(2))
             bar && bar.animate(v);
         })
