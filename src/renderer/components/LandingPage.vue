@@ -2,7 +2,7 @@
   <div id="wrapper">
     <div id="fixed_top">
       <el-row>
-        <el-form class="screen-form" label-width="40px" label-position="left">
+        <el-form style="margin-left: 40px;" class="screen-form" label-width="40px" label-position="left">
         <el-form-item label="酒吧">
           <el-select v-model="selectBar" placeholder="请选择">
             <el-option
@@ -86,6 +86,7 @@
   import SystemInformation from './LandingPage/SystemInformation'
   import { changeBgType, getAllMsg, saveBackground } from '../api/'
   import fs from 'fs'
+  import path from 'path'
   export default {
     name: 'landing-page',
     data () {
@@ -132,7 +133,7 @@
       changeTabScreen (index) {
         event.stopPropagation()
         this.activeIndex = index
-        var settings = JSON.parse(localStorage.getItem('setting'))
+        var settings = JSON.parse(fs.readFileSync(path.join(this.confirDir, './userData/setting.json')))
         var find = settings[this.displays[index].id]
         if (find) {
           // 设置自定义还是全屏
@@ -147,13 +148,18 @@
       },
       saveSetting () {
         var deviceId = this.displays[this.activeIndex].id
-        var settings = JSON.parse(localStorage.getItem('setting'))
+        var settings = JSON.parse(fs.readFileSync(path.join(this.confirDir, './userData/setting.json')))
         if (settings) {
           settings[deviceId].formLabelAlign = this.formLabelAlign
           settings[deviceId].screenRadio = this.screenRadio
           settings[deviceId].bgTypeRadio = this.bgTypeRadio
           settings[deviceId].animationRadio = this.animationRadio
-          localStorage.setItem('setting', JSON.stringify(settings))
+          console.log(settings)
+          fs.writeFileSync(
+            path.join(this.confirDir, './userData/setting.json'),
+            JSON.stringify(settings),
+            'utf8'
+          )
         }
       },
       getCurrentDeviceId () {
@@ -164,6 +170,7 @@
       }
     },
     created () {
+      this.confirDir = this.$electron.remote.app.getPath('userData')
       var bars = this.$electron.remote.getGlobal('sharedObject').bars
       this.bars = bars
       if (bars.length > 0) {
@@ -194,8 +201,9 @@
           this.selectId = res.result.bg[0].videoId
         }
         this.bgTypeRadio = res.result.ht_msg.default_bg_type.toString(1)
-        // 初始化localStorage
-        if (!localStorage.getItem('setting')) {
+        // 初始化配置文件
+
+        if (!fs.existsSync(path.join(this.confirDir, '/userData/setting.json'))) {
           var datas = {}
           displays.forEach((v) => {
             shows.push(false)
@@ -213,15 +221,18 @@
             }
             datas[deviceId] = o
           })
-          localStorage.setItem('setting', JSON.stringify(datas))
+          fs.mkdirSync(path.join(this.confirDir, '/userData'))
+          fs.writeFileSync(
+            path.join(this.confirDir, './userData/setting.json'),
+            JSON.stringify(datas),
+            'utf8'
+          )
         }
         this.shows = shows
         this.$nextTick(() => {
           this.changeTabScreen(0)
         })
       })
-      
-      console.log(bars)
       // 监听大屏幕关闭状态 修改 switch
       this.$electron.ipcRenderer.on('setSwitchOff', function (event, arg) {
         var index = _self.displays.findIndex(v => v.id == arg.deviceId)

@@ -13,10 +13,10 @@
             overflow: hidden;
         }
         .qrcode {
-            margin: 10px 0;
+            margin: 20px auto;
             display: none;
-            width: 400px;
-            height: 400px;
+            width: 360px;
+            height: 360px;
         }
         .tip {
             line-height: 30px;
@@ -93,7 +93,7 @@
             ajax(baseUrl + '/admin/Clients/getLoginQrcode').then(function(res) {
               if (res.code == '301000') {
                 loginId = res.result.id
-                $('#qrcode').attr('src', res.result.imgurl).show()
+                $('#qrcode').attr('src', res.result.imgurl).css('display', 'block')
               }
               if (loginId != 0) {
                 getLoinInfo()

@@ -89,7 +89,7 @@ function createWindow() {
       width: 1600
     })
     mainWindow.webContents.on('dom-ready', function() {
-      qrcodeWin.close()
+      qrcodeWin && qrcodeWin.close()
     })
     mainWindow.loadURL(winURL)
     mainWindow.on('closed', () => {
