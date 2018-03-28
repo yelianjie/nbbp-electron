@@ -7,9 +7,9 @@
           <el-select v-model="selectBar" placeholder="请选择">
             <el-option
               v-for="item in bars"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value">
+              :key="item.id"
+              :label="item.name"
+              :value="item.id">
             </el-option>
           </el-select>
         </el-form-item>
@@ -99,10 +99,7 @@
           x: 0,
           y: 0
         },
-        bars: [{
-          value: '1',
-          label: '告白气球酒吧'
-        }],
+        bars: [],
         selectBar: '1',
         displays: [],
         shows: [],
@@ -167,7 +164,11 @@
       }
     },
     created () {
-
+      var bars = this.$electron.remote.getGlobal('sharedObject').bars
+      this.bars = bars
+      if (bars.length > 0) {
+        this.selectBar = bars[0].id
+      }
       var _self = this
       /*fs.mkdir('./userData',  (error) => {
 
@@ -219,8 +220,8 @@
           this.changeTabScreen(0)
         })
       })
-      var bars = this.$electron.remote.getGlobal('sharedObject').bars
-      // console.log(bars)
+      
+      console.log(bars)
       // 监听大屏幕关闭状态 修改 switch
       this.$electron.ipcRenderer.on('setSwitchOff', function (event, arg) {
         var index = _self.displays.findIndex(v => v.id == arg.deviceId)

@@ -154,7 +154,8 @@ function createNBWin(arg, isFullscreen) {
       transparent: true,
       title: '牛霸霸屏',
       resizable: false,
-      movable: false
+      movable: false,
+      alwaysOnTop: true
     })
   }
 
@@ -165,7 +166,7 @@ function createNBWin(arg, isFullscreen) {
     animationRadio: arg.animationRadio
   }
   //var _root = 'http://niuba.siweiquanjing.com/electron/'
-  var _root = 'http://niuba.siweiquanjing.com/electron/'
+  var _root = 'http://xnb.siweiquanjing.com/electron/'
   var url = http_builder_url(_root, params)
   console.log(url)
   niubaWins[arg.deviceId].loadURL(url)
