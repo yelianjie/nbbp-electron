@@ -18,18 +18,44 @@
     </div>
     <div id="fixed_left">
       <p class="screen-out-title">屏幕输出</p>
-      <el-row v-for="(v, i) in displays" :key="i" class="screen-out-item" :class="{'active': activeIndex ==i}" @click.prevent="changeTabScreen(i)">
+      <el-row v-for="(v, i) in displays" :key="i" class="screen-out-item">
         <el-switch
           v-model="shows[i]"
           :active-text="'Display' + (i + 1)">
         </el-switch>
         <p class="tip-screen">屏幕大小：{{v.size.width}} * {{v.size.height}}</p>
-        <el-button type="primary" icon="el-icon-edit" circle @click.native="openSizeDialog"></el-button>
+        <i class="el-icon-edit" @click="openSizeDialog(i)"></i>
+        <i class="el-icon-circle-plus" @click="addSubScreen(i)"></i>
+        <el-row v-for="(vv, ii) in $options.filters.fliterShow(subScreens, v.id)" :key="ii" style="margin-left: 20px;">
+          <el-switch
+          v-model="subScreens[ii]"
+          :active-value="v.id + '-' + ii + '-on'"
+          :inactive-value="v.id + '-' + ii + '-off'"
+          :active-text="'虚拟屏' + (ii + 1)">
+        </el-switch>
+        <i class="el-icon-edit" @click="openSizeVirtualDialog(ii, v.id)"></i>
+        </el-row>
       </el-row>
     </div>
+    <el-dialog title="屏幕设置" :visible.sync="sizeDialogVisible" :modal="false">
+      <el-form class="screen-form" label-width="40px" label-position="left" :model="formLabelAlign">
+        <el-form-item label="宽">
+          <el-slider v-model="formLabelAlign.width" :max="controlSize.width" show-input @change="onSliderChange"></el-slider>
+        </el-form-item>
+        <el-form-item label="高">
+          <el-slider v-model="formLabelAlign.height" :max="controlSize.height" show-input @change="onSliderChange"></el-slider>
+        </el-form-item>
+        <el-form-item label="x">
+          <el-slider v-model="formLabelAlign.x" :min="-controlSize.maxX" :max="controlSize.maxX" show-input @change="onSliderChange"></el-slider>
+        </el-form-item>
+        <el-form-item label="y">
+          <el-slider v-model="formLabelAlign.y" :min="-controlSize.maxY" :max="controlSize.maxY" show-input @change="onSliderChange"></el-slider>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
     <div class="main">
       <template v-if="activeIndex != -1">
-      <el-card class="box-card">
+      <!-- <el-card class="box-card">
         <div slot="header" class="clearfix">
           <span>屏幕设置</span>
         </div>
@@ -51,7 +77,7 @@
             <el-slider v-model="formLabelAlign.y" show-input @change="onSliderChange"></el-slider>
           </el-form-item>
         </el-form>
-      </el-card>
+      </el-card> -->
       
       <el-card class="box-card">
         <div slot="header" class="clearfix">
@@ -107,14 +133,57 @@
         shows: [],
         activeIndex: -1,
         clickSelect: -1,
+        clickSelectSub: -1,
         result: {},
-        selectId: '-1'
+        selectId: '-1',
+        sizeDialogVisible: false,
+        controlSize: {},
+        subScreens: [],
+        subScreensSize: {}
       }
     },
     components: { SystemInformation },
     methods: {
-      openSizeDialog () {
-
+      openSizeDialog (index) {
+        this.sizeDialogVisible = true
+        this.initSizeControl(index)
+      },
+      initSizeControl (index) {
+        var maxX = 0
+        var maxY = 0
+        this.displays.forEach((v) => {
+          maxX += v.size.width
+          if (v.size.height > maxY) {
+            maxY = v.size.height
+          }
+        })
+        this.controlSize = {
+          width: this.displays[index].size.width,
+          height: this.displays[index].size.height,
+          x: this.displays[index].bounds.x,
+          y: this.displays[index].bounds.y,
+          maxX: maxX,
+          maxY: maxY
+        }
+      },
+      openSizeVirtualDialog (index, deviceId) {
+        this.sizeDialogVisible = true
+        this.formLabelAlign = this.subScreensSize[deviceId][index]
+      },
+      addSubScreen (index) {
+        var deviceId = this.displays[index].id
+        var _recordIndex = this.subScreens.length
+        console.log(_recordIndex)
+        this.subScreens.push(deviceId + '-' + _recordIndex + '-off')
+        this.showsCopySub = Object.assign([], this.subScreens)
+        if (!this.subScreensSize[deviceId])
+          this.subScreensSize[deviceId] = []
+        this.$set(this.subScreensSize[deviceId], _recordIndex, {
+          width: 800,
+          height: 800,
+          x: 0,
+          y: 0
+        })
       },
       changeBg (url, type, id) {
         this.selectId = id
@@ -122,11 +191,13 @@
         saveBackground({ht_id: this.selectBar, type: type, background_id: id}).then((res) => {})
         this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: {url: url, type: type}})
       },
-      openScreen (open) {
+      openScreen (open, type, subData) {
+        // type 1 主屏 2 为虚拟屏
+        type = type ? type : 1
         // this.$electron.shell.openExternal(link)
         this.formLabelAlign.ht_id = this.selectBar
         var open = open != undefined ? open : true
-        this.$electron.ipcRenderer.send('openScreen', {status: open, ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio, animationRadio: this.animationRadio})
+        this.$electron.ipcRenderer.send('openScreen', {status: open, ht_id: this.selectBar, deviceId: type == 2 ? subData.parentDeviceId : this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio, animationRadio: this.animationRadio, type: type, subIndex: type == 2 ? subData.subIndex : -1})
       },
       onSliderChange () {
         if (this.clickSelect != -1) {
@@ -143,8 +214,7 @@
             width: find.size.width,
             height: find.size.height,
             x: find.bounds.x,
-            y: find.bounds.y,
-            full: this.screenRadio == '2' ? true : false
+            y: find.bounds.y
           }
         }
         /*var settings = JSON.parse(fs.readFileSync(path.join(this.confirDir, './userData/setting.json')))
@@ -204,6 +274,7 @@
       var shows = []
       this.showsCopy = Object.assign([], this.shows)
       this.displays = displays
+      this.initSizeControl(0)
       getAllMsg({ ht_id: this.selectBar}).then((res) => {
         this.result = res.result
         if (res.result.ht_msg.default_bg_type == '1') {
@@ -271,11 +342,27 @@
       })
       // 监听大屏幕关闭状态 修改 switch
       this.$electron.ipcRenderer.on('setSwitchOff', function (event, arg) {
-        var index = _self.displays.findIndex(v => v.id == arg.deviceId)
-        if (index > -1 && _self.shows[index]) {
-          _self.$set(_self.shows, index, false)
+        if (!arg.hasOwnProperty('subIndex')) {
+          var index = _self.displays.findIndex(v => v.id == arg.deviceId)
+          if (index > -1 && _self.shows[index]) {
+            _self.$set(_self.shows, index, false)
+          }
+        } else {
+          var index = _self.subScreens.findIndex(v => v == arg.deviceId + '-' + arg.subIndex + '-on')
+          if (index > -1 && _self.subScreens[index]) {
+            _self.$set(_self.subScreens, index, arg.deviceId + '-' + arg.subIndex + '-off')
+          }
         }
+        
       })
+    },
+    filters: {
+      fliterShow (screens, deviceId) {
+        var arr = screens.filter((v) => {
+          return v.indexOf(deviceId) != -1
+        })
+        return arr
+      }
     },
     computed: {
       showBgs () {
@@ -350,6 +437,33 @@
             this.openScreen(false)
           } 
         }
+      },
+      subScreens:{
+        handler: function(newVal, oldVal) {
+          if (newVal.length != oldVal.length) {
+            return false
+          }
+          var find = -1
+          newVal.forEach((v, i) => {
+            if (v != this.showsCopySub[i]) {
+              find = i
+            }
+          })
+          this.clickSelectSub = find
+          this.showsCopySub = Object.assign([], newVal)
+          if (find > -1) {
+            // 打开或关闭大屏幕
+            var _display = this.displays[find]
+            if (newVal[find].indexOf('on') > -1) {
+              // 打开分屏
+              this.openScreen(true, 2, {parentDeviceId: newVal[find].split('-')[0], subIndex: find})
+            } else {
+              this.openScreen(false, 2, {parentDeviceId: newVal[find].split('-')[0], subIndex: find})
+            } 
+          }
+        },
+        // 深度观察
+        deep:true
       }
     }
   }

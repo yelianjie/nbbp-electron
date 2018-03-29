@@ -103,6 +103,9 @@ function createWindow() {
 
   // var lastId = 0
   ipcMain.on('openScreen', function(event, arg) {
+    if (!niubaWins[arg.deviceId]) {
+      niubaWins[arg.deviceId] = {main: null, subs: []}
+    }
     /*var isSameId = false
     if (lastId != arg.ht_id) {
       isSameId = false
@@ -111,24 +114,46 @@ function createWindow() {
       isSameId = true
     }
     lastId = arg.ht_id*/
-    if (arg.status != undefined && !arg.status) {
-      niubaWins[arg.deviceId] && niubaWins[arg.deviceId].close()
-      return false
-    }
-    if (!niubaWins[arg.deviceId]) {
-      if (!arg.size.full) {
-        createNBWin(arg, false)
+    if (arg.type == 1) {
+      if (arg.status != undefined && !arg.status) {
+        niubaWins[arg.deviceId].main && niubaWins[arg.deviceId].main.close()
+        return false
+      }
+      if (!niubaWins[arg.deviceId].main) {
+        if (!arg.size.full) {
+          createNBWin(arg, false)
+        } else {
+          createNBWin(arg, true)
+        }
       } else {
-        createNBWin(arg, true)
+        if (!arg.size.full) {
+          niubaWins[arg.deviceId].main.setBounds(arg.size)
+        } else {
+          niubaWins[arg.deviceId].main.setFullScreen(true)
+        }
+
       }
     } else {
-      if (!arg.size.full) {
-        niubaWins[arg.deviceId].setBounds(arg.size)
-      } else {
-        niubaWins[arg.deviceId].setFullScreen(true)
+      if (arg.status != undefined && !arg.status) {
+        niubaWins[arg.deviceId].subs[arg.subIndex] && niubaWins[arg.deviceId].subs[arg.subIndex].close()
+        return false
       }
+      if (!niubaWins[arg.deviceId].subs[arg.subIndex]) {
+        if (!arg.size.full) {
+          createNBWin(arg, false)
+        } else {
+          createNBWin(arg, true)
+        }
+      } else {
+        if (!arg.size.full) {
+          niubaWins[arg.deviceId].subs[arg.subIndex].setBounds(arg.size)
+        } else {
+          niubaWins[arg.deviceId].subs[arg.subIndex].setFullScreen(true)
+        }
 
+      }
     }
+    
   })
   // 改变屏幕大小
   ipcMain.on('setScreenSize', function(event, arg) {
@@ -143,20 +168,39 @@ function createWindow() {
 
 function createNBWin(arg, isFullscreen) {
   if (isFullscreen) {
-    niubaWins[arg.deviceId] = new BrowserWindow({ fullscreen: true, frame: false, transparent: true })
+    if (arg.type == 1) {
+      niubaWins[arg.deviceId].main = new BrowserWindow({ fullscreen: true, frame: false, transparent: true })
+    } else {
+      niubaWins[arg.deviceId].subs[arg.subIndex] = new BrowserWindow({ fullscreen: true, frame: false, transparent: true })
+    }
   } else {
-    niubaWins[arg.deviceId] = new BrowserWindow({
-      width: arg.size.width,
-      height: arg.size.height,
-      x: arg.size.x,
-      y: arg.size.y,
-      frame: false,
-      transparent: true,
-      title: '牛霸霸屏',
-      resizable: false,
-      movable: false,
-      alwaysOnTop: true
-    })
+    if (arg.type == 1) {
+      niubaWins[arg.deviceId].main = new BrowserWindow({
+        width: arg.size.width,
+        height: arg.size.height,
+        x: arg.size.x,
+        y: arg.size.y,
+        frame: false,
+        transparent: true,
+        title: '牛霸霸屏',
+        resizable: false,
+        movable: false,
+        alwaysOnTop: true
+      })
+    } else {
+      niubaWins[arg.deviceId].subs[arg.subIndex] = new BrowserWindow({
+        width: arg.size.width,
+        height: arg.size.height,
+        x: arg.size.x,
+        y: arg.size.y,
+        frame: false,
+        transparent: true,
+        title: '牛霸霸屏',
+        resizable: false,
+        movable: false,
+        alwaysOnTop: true
+      })
+    }
   }
 
   var params = {
@@ -169,13 +213,23 @@ function createNBWin(arg, isFullscreen) {
   var _root = 'http://xnb.siweiquanjing.com/electron/'
   var url = http_builder_url(_root, params)
   console.log(url)
-  niubaWins[arg.deviceId].loadURL(url)
-  niubaWins[arg.deviceId].on('close', function() {
-    mainWindow.webContents.send('setSwitchOff', { deviceId: arg.deviceId })
-  })
-  niubaWins[arg.deviceId].on('closed', function() {
-    niubaWins[arg.deviceId] = null
-  })
+  if (arg.type == 1) {
+    niubaWins[arg.deviceId].main.loadURL(url)
+    niubaWins[arg.deviceId].main.on('close', function() {
+      mainWindow.webContents.send('setSwitchOff', { deviceId: arg.deviceId })
+    })
+    niubaWins[arg.deviceId].main.on('closed', function() {
+      niubaWins[arg.deviceId].main = null
+    })
+  } else {
+    niubaWins[arg.deviceId].subs[arg.subIndex].loadURL(url)
+    niubaWins[arg.deviceId].subs[arg.subIndex].on('close', function() {
+      mainWindow.webContents.send('setSwitchOff', { deviceId: arg.deviceId, subIndex: arg.subIndex })
+    })
+    niubaWins[arg.deviceId].subs[arg.subIndex].on('closed', function() {
+      niubaWins[arg.deviceId].subs[arg.subIndex] = null
+    })
+  }
 }
 
 app.on('ready', createWindow)
