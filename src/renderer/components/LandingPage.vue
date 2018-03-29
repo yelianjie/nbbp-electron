@@ -24,6 +24,7 @@
           :active-text="'Display' + (i + 1)">
         </el-switch>
         <p class="tip-screen">屏幕大小：{{v.size.width}} * {{v.size.height}}</p>
+        <el-button type="primary" icon="el-icon-edit" circle @click.native="openSizeDialog"></el-button>
       </el-row>
     </div>
     <div class="main">
@@ -44,10 +45,10 @@
             <el-slider v-model="formLabelAlign.height" :max="displays[0].size.height" show-input @change="onSliderChange"></el-slider>
           </el-form-item>
           <el-form-item label="x">
-            <el-slider v-model="formLabelAlign.x" :max="displays[0].size.width" show-input @change="onSliderChange"></el-slider>
+            <el-slider v-model="formLabelAlign.x" show-input @change="onSliderChange"></el-slider>
           </el-form-item>
           <el-form-item label="y">
-            <el-slider v-model="formLabelAlign.y" :max="displays[0].size.height" show-input @change="onSliderChange"></el-slider>
+            <el-slider v-model="formLabelAlign.y" show-input @change="onSliderChange"></el-slider>
           </el-form-item>
         </el-form>
       </el-card>
@@ -112,6 +113,9 @@
     },
     components: { SystemInformation },
     methods: {
+      openSizeDialog () {
+
+      },
       changeBg (url, type, id) {
         this.selectId = id
         type = ~~(type)
@@ -127,13 +131,23 @@
       onSliderChange () {
         if (this.clickSelect != -1) {
           this.$electron.ipcRenderer.send('setScreenSize', {ht_id: this.selectBar, deviceId: this.displays[this.clickSelect].id, size: this.formLabelAlign, bgTypeRadio: this.bgTypeRadio, animationRadio: this.animationRadio})
-          this.saveSetting()
+          // this.saveSetting()
         }
       },
       changeTabScreen (index) {
         event.stopPropagation()
         this.activeIndex = index
-        var settings = JSON.parse(fs.readFileSync(path.join(this.confirDir, './userData/setting.json')))
+        var find = this.displays.find((v, i) => i == index)
+        if (find) {
+          this.formLabelAlign = {
+            width: find.size.width,
+            height: find.size.height,
+            x: find.bounds.x,
+            y: find.bounds.y,
+            full: this.screenRadio == '2' ? true : false
+          }
+        }
+        /*var settings = JSON.parse(fs.readFileSync(path.join(this.confirDir, './userData/setting.json')))
         var find = settings[this.displays[index].id]
         if (find) {
           // 设置自定义还是全屏
@@ -144,7 +158,7 @@
           this.bgTypeRadio = find.bgTypeRadio
           // 设置动画类型
           this.animationRadio = find.animationRadio
-        }
+        }*/
       },
       saveSetting () {
         var deviceId = this.displays[this.activeIndex].id
@@ -190,7 +204,6 @@
       var shows = []
       this.showsCopy = Object.assign([], this.shows)
       this.displays = displays
-      var deviceId = displays[0].id
       getAllMsg({ ht_id: this.selectBar}).then((res) => {
         this.result = res.result
         if (res.result.ht_msg.default_bg_type == '1') {
@@ -201,9 +214,12 @@
           this.selectId = res.result.bg[0].videoId
         }
         this.bgTypeRadio = res.result.ht_msg.default_bg_type.toString(1)
+        displays.forEach((v) => {
+          shows.push(false)
+        })
         // 初始化配置文件
-
-        if (!fs.existsSync(path.join(this.confirDir, '/userData/setting.json'))) {
+        /*var isExsitSettingFile = fs.existsSync(path.join(this.confirDir, '/userData/setting.json'))
+        if (!isExsitSettingFile) {
           var datas = {}
           displays.forEach((v) => {
             shows.push(false)
@@ -219,7 +235,7 @@
               bgTypeRadio: res.result.ht_msg.default_bg_type.toString(),
               animationRadio: '1'
             }
-            datas[deviceId] = o
+            datas[v.id] = o
           })
           fs.mkdirSync(path.join(this.confirDir, '/userData'))
           fs.writeFileSync(
@@ -227,7 +243,27 @@
             JSON.stringify(datas),
             'utf8'
           )
-        }
+        } else {
+          var settings = JSON.parse(fs.readFileSync(path.join(this.confirDir, './userData/setting.json')))
+          displays.forEach((v) => {
+            shows.push(false)
+            if (!settings[v.id]) {
+              var o = {
+                screenRadio: '2',
+                formLabelAlign: {
+                  width: v.size.width,
+                  height: v.size.height,
+                  x: v.bounds.x,
+                  y: v.bounds.y,
+                  full: true
+                },
+                bgTypeRadio: res.result.ht_msg.default_bg_type.toString(),
+                animationRadio: '1'
+              }
+              settings[v.id] = o
+            }
+          })
+        }*/
         this.shows = shows
         this.$nextTick(() => {
           this.changeTabScreen(0)
@@ -270,7 +306,7 @@
             this.openScreen()
           }
         }
-        this.saveSetting()
+        // this.saveSetting()
       },
       bgTypeRadio (newVal, oldVal) {
         if (!oldVal) {
@@ -284,7 +320,7 @@
           changeBgType({ ht_id: this.selectBar, type: newVal}).then((res) => {})
         }
         this.$electron.ipcRenderer.send('systemSetting', {ht_id: this.selectBar, deviceId: this.displays[this.activeIndex].id, type: 'setBg', value: newVal})*/
-        this.saveSetting()
+        // this.saveSetting()
       },
       animationRadio (newVal, oldVal) {
         var _self = this
