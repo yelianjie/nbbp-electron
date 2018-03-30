@@ -86,14 +86,17 @@ function createWindow() {
     mainWindow = new BrowserWindow({
       height: 800,
       useContentSize: true,
-      width: 1600
+      width: 1600,
+      alwaysOnTop: true
     })
+    mainWindow.webContents.openDevTools ()
     mainWindow.webContents.on('dom-ready', function() {
       qrcodeWin && qrcodeWin.close()
     })
     mainWindow.loadURL(winURL)
     mainWindow.on('closed', () => {
       mainWindow = null
+      app.quit()
     })
   })
 
@@ -104,7 +107,7 @@ function createWindow() {
   // var lastId = 0
   ipcMain.on('openScreen', function(event, arg) {
     if (!niubaWins[arg.deviceId]) {
-      niubaWins[arg.deviceId] = {main: null, subs: []}
+      niubaWins[arg.deviceId] = {main: null, subs: null}
     }
     /*var isSameId = false
     if (lastId != arg.ht_id) {
@@ -135,10 +138,13 @@ function createWindow() {
       }
     } else {
       if (arg.status != undefined && !arg.status) {
-        niubaWins[arg.deviceId].subs[arg.subIndex] && niubaWins[arg.deviceId].subs[arg.subIndex].close()
+        niubaWins[arg.deviceId].subs[arg.subDeviceId] && niubaWins[arg.deviceId].subs[arg.subDeviceId].close()
         return false
       }
-      if (!niubaWins[arg.deviceId].subs[arg.subIndex]) {
+      if (!niubaWins[arg.deviceId].subs) {
+          niubaWins[arg.deviceId].subs = {}
+        }
+      if (!niubaWins[arg.deviceId].subs[arg.subDeviceId]) {
         if (!arg.size.full) {
           createNBWin(arg, false)
         } else {
@@ -146,9 +152,9 @@ function createWindow() {
         }
       } else {
         if (!arg.size.full) {
-          niubaWins[arg.deviceId].subs[arg.subIndex].setBounds(arg.size)
+          niubaWins[arg.deviceId].subs[arg.subDeviceId].setBounds(arg.size)
         } else {
-          niubaWins[arg.deviceId].subs[arg.subIndex].setFullScreen(true)
+          niubaWins[arg.deviceId].subs[arg.subDeviceId].setFullScreen(true)
         }
 
       }
@@ -157,12 +163,35 @@ function createWindow() {
   })
   // 改变屏幕大小
   ipcMain.on('setScreenSize', function(event, arg) {
-    niubaWins[arg.deviceId] && niubaWins[arg.deviceId].setBounds(arg.size)
+    console.log(arg)
+    if (arg.subDeviceId) {
+      if (!niubaWins[arg.deviceId]) {
+        niubaWins[arg.deviceId] = {main: null, subs: null}
+      }
+      niubaWins[arg.deviceId].subs && niubaWins[arg.deviceId].subs[arg.subDeviceId] && niubaWins[arg.deviceId].subs[arg.subDeviceId].setBounds(arg.size)
+    } else {
+      if (!niubaWins[arg.deviceId]) {
+        return false
+      }
+      niubaWins[arg.deviceId].main && niubaWins[arg.deviceId].main.setBounds(arg.size)
+    }
   })
 
   // 改变网页设置
   ipcMain.on('systemSetting', function(event, arg) {
-    niubaWins[arg.deviceId] && niubaWins[arg.deviceId].webContents.send('setting', arg)
+    if (!niubaWins[arg.deviceId]) {
+      return false
+    }
+    if (niubaWins[arg.deviceId].main) {
+      niubaWins[arg.deviceId].main.webContents.send('setting', arg)
+    }
+    if (niubaWins[arg.deviceId].subs) {
+      Object.keys(niubaWins[arg.deviceId].subs).forEach((v) => {
+        if (niubaWins[arg.deviceId].subs[v]) {
+          niubaWins[arg.deviceId].subs[v].webContents.send('setting', arg)
+        }
+      })
+    }
   })
 }
 
@@ -171,7 +200,7 @@ function createNBWin(arg, isFullscreen) {
     if (arg.type == 1) {
       niubaWins[arg.deviceId].main = new BrowserWindow({ fullscreen: true, frame: false, transparent: true })
     } else {
-      niubaWins[arg.deviceId].subs[arg.subIndex] = new BrowserWindow({ fullscreen: true, frame: false, transparent: true })
+      niubaWins[arg.deviceId].subs[arg.subDeviceId] = new BrowserWindow({ fullscreen: true, frame: false, transparent: true })
     }
   } else {
     if (arg.type == 1) {
@@ -185,10 +214,13 @@ function createNBWin(arg, isFullscreen) {
         title: '牛霸霸屏',
         resizable: false,
         movable: false,
-        alwaysOnTop: true
+        alwaysOnTop: true,
+        webPreferences: {
+          devTools: true
+        }
       })
     } else {
-      niubaWins[arg.deviceId].subs[arg.subIndex] = new BrowserWindow({
+      niubaWins[arg.deviceId].subs[arg.subDeviceId] = new BrowserWindow({
         width: arg.size.width,
         height: arg.size.height,
         x: arg.size.x,
@@ -222,12 +254,12 @@ function createNBWin(arg, isFullscreen) {
       niubaWins[arg.deviceId].main = null
     })
   } else {
-    niubaWins[arg.deviceId].subs[arg.subIndex].loadURL(url)
-    niubaWins[arg.deviceId].subs[arg.subIndex].on('close', function() {
-      mainWindow.webContents.send('setSwitchOff', { deviceId: arg.deviceId, subIndex: arg.subIndex })
+    niubaWins[arg.deviceId].subs[arg.subDeviceId].loadURL(url)
+    niubaWins[arg.deviceId].subs[arg.subDeviceId].on('close', function() {
+      mainWindow.webContents.send('setSwitchOff', { deviceId: arg.deviceId, subDeviceId: arg.subDeviceId })
     })
-    niubaWins[arg.deviceId].subs[arg.subIndex].on('closed', function() {
-      niubaWins[arg.deviceId].subs[arg.subIndex] = null
+    niubaWins[arg.deviceId].subs[arg.subDeviceId].on('closed', function() {
+      niubaWins[arg.deviceId].subs[arg.subDeviceId] = null
     })
   }
 }

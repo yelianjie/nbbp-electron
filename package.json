@@ -17,7 +17,7 @@
     "postinstall": ""
   },
   "build": {
-    "productName": "牛霸霸屏",
+    "productName": "牛霸霸屏Demo",
     "appId": "org.simulatedgreg.nbbp-vue",
     "directories": {
       "output": "build"
